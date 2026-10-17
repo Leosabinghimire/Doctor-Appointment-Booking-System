@@ -16,12 +16,23 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Add, Archive, Edit, LocalHospital, MedicalServices, Search, Unarchive, Videocam } from '@mui/icons-material';
+import {
+  Add,
+  Archive,
+  CalendarMonth,
+  Edit,
+  LocalHospital,
+  MedicalServices,
+  Search,
+  Unarchive,
+  Videocam,
+} from '@mui/icons-material';
 import { ConfirmDialog, EmptyState, Loader, PageHeader } from '@/components/ui';
 import { useAdminDoctors, useSetDoctorActive } from '@/hooks/admin';
 import { formatCurrency, initials } from '@/utils/format';
 import type { AdminDoctor, ApiError } from '@/types';
 import { DoctorFormDialog } from './DoctorFormDialog';
+import { ScheduleDialog } from './ScheduleDialog';
 
 type Toast = { severity: 'success' | 'warning' | 'error'; message: string } | null;
 
@@ -34,6 +45,7 @@ export const ManageDoctors = () => {
   const [editing, setEditing] = useState<AdminDoctor | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [archiving, setArchiving] = useState<AdminDoctor | null>(null);
+  const [scheduling, setScheduling] = useState<AdminDoctor | null>(null);
   const [toast, setToast] = useState<Toast>(null);
 
   const counts = useMemo(
@@ -161,6 +173,11 @@ export const ManageDoctors = () => {
                   </Stack>
                 </Box>
                 <Stack direction="row" spacing={0.5}>
+                  <Tooltip title="Schedule and time off">
+                    <IconButton onClick={() => setScheduling(d)} aria-label={`Schedule for ${d.name}`}>
+                      <CalendarMonth />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Edit">
                     <IconButton onClick={() => openEdit(d)} aria-label={`Edit ${d.name}`}>
                       <Edit />
@@ -192,6 +209,8 @@ export const ManageDoctors = () => {
         onClose={() => setFormOpen(false)}
         onSaved={(message, severity = 'success') => setToast({ severity, message })}
       />
+
+      <ScheduleDialog doctor={scheduling} onClose={() => setScheduling(null)} />
 
       <ConfirmDialog
         open={Boolean(archiving)}

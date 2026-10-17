@@ -123,6 +123,21 @@ const MIGRATIONS: string[] = [
     updated_at INTEGER NOT NULL
   );
   `,
+
+  // 4 — per-doctor weekly hours (NULL = clinic default) and time off
+  `
+  ALTER TABLE doctors ADD COLUMN schedule TEXT;
+
+  CREATE TABLE doctor_time_off (
+    id         TEXT PRIMARY KEY,
+    doctor_id  TEXT NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+    start_day  TEXT NOT NULL,
+    end_day    TEXT NOT NULL,
+    reason     TEXT NOT NULL DEFAULT '',
+    CHECK (start_day <= end_day)
+  );
+  CREATE INDEX doctor_time_off_doctor ON doctor_time_off (doctor_id, end_day);
+  `,
 ];
 
 export const migrate = (db: Database.Database) => {

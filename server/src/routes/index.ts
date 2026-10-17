@@ -3,7 +3,11 @@ import type { BookingPayload, Doctor } from '../../../src/types';
 import { currentUser, isAdmin, requireAuth, requireRole } from '../auth/middleware';
 import { authRoutes } from '../auth/routes';
 import { bookAppointment, cancelAppointment } from '../booking';
-import { appointmentsRepo, getAvailability } from '../repos/appointments';
+import { appointmentsRepo, countInRange, countOutsideWeekly, getAvailability } from '../repos/appointments';
+import { schedulesRepo } from '../repos/schedules';
+import { scheduleProblems } from '../../../src/utils/schedule';
+import type { WeeklySchedule } from '../../../src/types';
+import { addDays, localDay } from '../util';
 import { doctorsRepo } from '../repos/doctors';
 import { PHOTO_MAX_BYTES, doctorPhotosRepo, sniffImageType } from '../repos/doctorPhotos';
 import { patientsRepo } from '../repos/patients';
@@ -232,6 +236,65 @@ api.delete('/admin/doctors/:id/photo', requireRole('admin'), (req, res) => {
   doctorPhotosRepo.remove(req.params.id);
   res.json(doctorsRepo.adminList().find((d) => d.id === req.params.id));
 });
+// ---- Doctor schedules ----
+const requireDoctor = (id: string) => {
+  if (!doctorsRepo.exists(id)) throw new HttpError(404, 'Doctor not found', 'NOT_FOUND');
+};
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const isRealDay = (v: unknown): v is string =>
+  typeof v === 'string' && DAY.test(v) && !Number.isNaN(Date.parse(`${v}T12:00:00`)) && localDay(new Date(`${v}T12:00:00`)) === v;
+
+api.get('/admin/doctors/:id/schedule', requireRole('admin'), (req, res) => {
+  requireDoctor(req.params.id);
+  res.json(schedulesRepo.full(req.params.id, localDay()));
+});
+
+// Body: { weekly: WeeklySchedule } to set custom hours, or { weekly: null } to go back to the clinic default.
+// Existing bookings are never cancelled; the response says how many now fall outside the hours.
+api.put('/admin/doctors/:id/schedule', requireRole('admin'), (req, res) => {
+  requireDoctor(req.params.id);
+  const { weekly } = (req.body ?? {}) as { weekly?: unknown };
+  if (weekly !== null) {
+    const problems = scheduleProblems(weekly);
+    if (problems.length) throw new HttpError(400, problems.join('. '), 'VALIDATION');
+  }
+  schedulesRepo.setWeekly(req.params.id, weekly as WeeklySchedule | null);
+  const schedule = schedulesRepo.full(req.params.id, localDay());
+  res.json({ schedule, affectedAppointments: countOutsideWeekly(req.params.id, schedule.weekly) });
+});
+
+api.post('/admin/doctors/:id/time-off', requireRole('admin'), (req, res) => {
+  requireDoctor(req.params.id);
+  const { startDay, endDay, reason } = (req.body ?? {}) as Record<string, unknown>;
+  const today = localDay();
+  const problems: string[] = [];
+  if (!isRealDay(startDay)) problems.push('Choose a valid start date');
+  if (!isRealDay(endDay)) problems.push('Choose a valid end date');
+  if (isRealDay(startDay) && isRealDay(endDay)) {
+    if (endDay < startDay) problems.push('The end date must be on or after the start date');
+    if (endDay < today) problems.push('That period is already over');
+    if (startDay > addDays(today, 730)) problems.push('Time off can be planned up to 2 years ahead');
+  }
+  const note = typeof reason === 'string' ? reason.trim() : '';
+  if (note.length > 200) problems.push('Reason is too long (200 characters max)');
+  if (problems.length) throw new HttpError(400, problems.join('. '), 'VALIDATION');
+
+  schedulesRepo.addTimeOff(req.params.id, startDay as string, endDay as string, note);
+  res.status(201).json({
+    schedule: schedulesRepo.full(req.params.id, today),
+    affectedAppointments: countInRange(req.params.id, startDay as string, endDay as string),
+  });
+});
+
+api.delete('/admin/doctors/:id/time-off/:timeOffId', requireRole('admin'), (req, res) => {
+  requireDoctor(req.params.id);
+  if (!schedulesRepo.removeTimeOff(req.params.id, req.params.timeOffId)) {
+    throw new HttpError(404, 'Time off not found', 'NOT_FOUND');
+  }
+  res.json({ schedule: schedulesRepo.full(req.params.id, localDay()), affectedAppointments: 0 });
+});
+
 // Archive / restore. Archived doctors are hidden from patients; their existing appointments are kept.
 api.patch('/admin/doctors/:id/status', requireRole('admin'), (req, res) => {
   const { active } = (req.body ?? {}) as { active?: unknown };

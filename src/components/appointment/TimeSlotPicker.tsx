@@ -57,8 +57,11 @@ export const TimeSlotPicker = ({
               <Typography fontWeight={800} fontSize={18}>
                 {formatDate(day.date, 'd')}
               </Typography>
-              <Typography variant="caption" color={slotsLeft ? 'success.main' : 'error.main'}>
-                {slotsLeft ? `${slotsLeft} slots` : 'Full'}
+              <Typography
+                variant="caption"
+                color={slotsLeft ? 'success.main' : day.closed ? 'text.secondary' : 'error.main'}
+              >
+                {slotsLeft ? `${slotsLeft} slots` : day.closed ? 'Closed' : 'Full'}
               </Typography>
             </Box>
           );
@@ -68,6 +71,9 @@ export const TimeSlotPicker = ({
       <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 3, mb: 1 }}>
         Available time slots
       </Typography>
+      {activeDay?.closed && (
+        <Typography color="text.secondary">The doctor isn't seeing patients on this day. Please choose another date.</Typography>
+      )}
       <Box
         sx={{
           display: 'grid',

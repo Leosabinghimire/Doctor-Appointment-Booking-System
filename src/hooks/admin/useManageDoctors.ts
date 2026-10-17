@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminService } from '@/api/services';
 import { queryKeys } from '@/lib/queryKeys';
-import type { AdminDoctor, ApiError, DoctorInput } from '@/types';
+import type { AdminDoctor, ApiError, DoctorInput, ScheduleChangeResult, TimeOff, WeeklySchedule } from '@/types';
 
 export const useAdminDoctors = () =>
   useQuery({
@@ -55,6 +55,40 @@ export const useSaveDoctor = () => {
       }
     },
     onSuccess: invalidate,
+  });
+};
+
+export const useDoctorSchedule = (doctorId: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.admin.doctorSchedule(doctorId ?? ''),
+    queryFn: () => adminService.getSchedule(doctorId!),
+    enabled: Boolean(doctorId),
+  });
+
+type ScheduleAction =
+  | { kind: 'weekly'; weekly: WeeklySchedule | null }
+  | { kind: 'addTimeOff'; entry: Omit<TimeOff, 'id'> }
+  | { kind: 'removeTimeOff'; timeOffId: string };
+
+/** Every schedule change; afterwards the schedule, availability and "next slot" are refreshed. */
+export const useChangeSchedule = (doctorId: string) => {
+  const qc = useQueryClient();
+  const invalidate = useInvalidateDoctors();
+  return useMutation({
+    mutationFn: (action: ScheduleAction): Promise<ScheduleChangeResult> => {
+      switch (action.kind) {
+        case 'weekly':
+          return adminService.saveWeeklySchedule(doctorId, action.weekly);
+        case 'addTimeOff':
+          return adminService.addTimeOff(doctorId, action.entry);
+        case 'removeTimeOff':
+          return adminService.removeTimeOff(doctorId, action.timeOffId);
+      }
+    },
+    onSuccess: ({ schedule }) => {
+      qc.setQueryData(queryKeys.admin.doctorSchedule(doctorId), schedule);
+      invalidate();
+    },
   });
 };
 

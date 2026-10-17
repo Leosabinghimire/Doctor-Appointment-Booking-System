@@ -50,7 +50,7 @@ Or create a new patient account with **Create account** on the login page.
 ### For admins
 - **Admin dashboard** — live totals (patients, doctors, today's bookings, revenue this month), bookings per day, specialty mix, newest sign-ups
 - **All appointments** — every booking across the clinic
-- **Manage doctors** — add, edit, archive and restore doctors
+- **Manage doctors** — add, edit, archive and restore doctors; upload photos; set each doctor's weekly hours and time off
 - **Call logs** — phone calls handled by the Telentir AI agent, with transcripts
 - **Reminder calls** — have the AI agent phone a patient about an upcoming appointment (needs Telentir)
 
@@ -70,7 +70,6 @@ These parts of the interface are placeholders. They're listed here so nobody mis
 | Editing your profile | Profile is read-only |
 | Email / SMS confirmations | Not sent — confirmations appear in **Notifications** |
 | Doctor reviews and ratings | No review system; new doctors show **New** |
-| Per-doctor schedules | Every doctor works 09:00–17:00, Monday–Saturday |
 | Booking by phone through the AI agent | Not possible with Telentir's documented API (see [Telentir](#telentir-ai-voice-agent)) |
 
 ## Login and roles
@@ -94,6 +93,7 @@ Admins manage doctors at **Manage Doctors** (`/manage-doctors`).
 - **Photos.** Upload a JPEG, PNG or WebP photo, or paste a link to one. Uploads are shrunk in the browser to 512 px (usually under 100 KB) and stored inside the database, so backing up `medicare.db` also backs up the photos. The server checks the file's actual contents, so a renamed non-image file is rejected.
 - **Archive instead of delete.** Archived doctors disappear from patient search and booking, but past and already-booked appointments are kept. The archive dialog shows how many upcoming visits the doctor still has, so you can contact those patients. Archived doctors can be restored.
 - **Checked on the server:** required fields, a specialty from the list, experience 0–70 years, fee 0–10,000, at least one language, at least one visit type (video / in-person), and photo links must start with `https://`. All problems are reported together.
+- **Schedules.** Each doctor has weekly hours: per weekday, a day off or working hours with an optional break. Doctors without their own hours use the clinic default (Monday–Saturday 09:00–17:30, lunch 12:00–13:00). **Time off** (holidays, leave) blocks booking for those dates. Changes never cancel existing bookings — the admin is told how many booked visits fall outside the new availability so those patients can be contacted. Patients see such days as **Closed**.
 - **Computed, not typed:** "Next available" and "Available today" come from the real schedule and existing bookings.
 - The Find Doctors city list and fee slider are built from your actual doctors, so nobody is hidden by a fixed list.
 - **Production starts with no doctors.** The 10 sample doctors are added only in development.
@@ -106,7 +106,7 @@ The backend stores everything in **SQLite** — a single file, nothing to instal
 - **Start fresh:** stop the backend and delete the `server/data` folder. On the next start you get an empty database (plus sample data in development).
 - **Schema changes** live in [server/src/db/migrations.ts](server/src/db/migrations.ts) and run automatically on start. To change the schema, add a new migration at the end — never edit one that has already shipped.
 - **Double booking** is blocked by a unique index in the database, so it holds even when two people click at the same moment (the second gets `409 SLOT_TAKEN`).
-- **Availability** = the clinic schedule (09:00–17:00, Monday–Saturday, next 7 days) minus booked slots and times that have already passed.
+- **Availability** = each doctor's weekly hours for the next 7 days, minus time off, booked slots and times that have already passed. Visits are 30 minutes. The slot rules live in [src/utils/schedule.ts](src/utils/schedule.ts), shared by the backend and the admin schedule editor so the preview always matches what patients can book.
 
 ## Telentir AI voice agent
 

@@ -5,10 +5,13 @@ import type {
   Doctor,
   DoctorAvailability,
   TimeSlot,
+  WeeklySchedule,
 } from '../../../src/types';
+import { slotsForDay } from '../../../src/utils/schedule';
 import { sql } from '../db/connection';
 import { addDays, localDay, minutesOf, weekdayOf } from '../util';
 import { avatarUrl } from './doctorPhotos';
+import { schedulesRepo } from './schedules';
 
 interface Row {
   id: string;
@@ -97,41 +100,39 @@ export const appointmentsRepo = {
 
 // ---- Availability ----
 
-/** The clinic's daily schedule. Every doctor works these slots, Monday–Saturday. */
-const SLOT_TIMES = [
-  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-  '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM',
-  '04:00 PM', '04:30 PM', '05:00 PM',
-];
 const BOOKING_WINDOW_DAYS = 7;
 
 /**
- * Next 7 days of slots for a doctor. A slot is free unless it's booked, already
- * past, or on a Sunday (clinic closed). Computed from appointments, so it can't drift.
+ * Next 7 days of slots for a doctor, from their weekly hours (or the clinic default).
+ * A slot is free unless it's booked, already past, or inside the doctor's time off.
+ * Computed from appointments, so it can't drift.
  */
 export const getAvailability = (doctorId: string): DoctorAvailability[] => {
   const today = localDay();
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const lastDay = addDays(today, BOOKING_WINDOW_DAYS - 1);
+  const { weekly } = schedulesRepo.weekly(doctorId);
+  const timeOff = schedulesRepo.timeOff(doctorId, today);
 
   const booked = new Set(
     (
       sql
         .prepare(`SELECT day, time FROM appointments WHERE doctor_id = ? AND day BETWEEN ? AND ? AND status IN ${ACTIVE}`)
         .all(doctorId, today, lastDay) as { day: string; time: string }[]
-    ).map((b) => `${b.day}|${b.time}`)
+    ).map((b) => `${b.day}|${minutesOf(b.time)}`)
   );
 
   return Array.from({ length: BOOKING_WINDOW_DAYS }, (_, i) => {
     const day = addDays(today, i);
-    const closed = weekdayOf(day) === 0;
-    const slots: TimeSlot[] = SLOT_TIMES.map((time, j) => ({
-      id: `slot-${j}-${time}`,
-      time,
-      available: !closed && !booked.has(`${day}|${time}`) && !(day === today && minutesOf(time) <= nowMinutes),
+    const away = timeOff.some((t) => t.startDay <= day && day <= t.endDay);
+    const working = away ? [] : slotsForDay(weekly[weekdayOf(day)]);
+    const slots: TimeSlot[] = working.map((slot) => ({
+      id: slot.id,
+      time: slot.time,
+      available: !booked.has(`${day}|${slot.minutes}`) && !(day === today && slot.minutes <= nowMinutes),
     }));
-    return { date: day, slots };
+    return { date: day, slots, closed: working.length === 0 };
   });
 };
 
@@ -139,3 +140,20 @@ export const findSlot = (doctorId: string, day: string, slotId: string) =>
   getAvailability(doctorId)
     .find((d) => d.date === day)
     ?.slots.find((s) => s.id === slotId);
+
+// ---- Schedule change impact ----
+
+const upcomingFor = (doctorId: string, fromDay: string) =>
+  sql
+    .prepare(`SELECT day, time FROM appointments WHERE doctor_id = ? AND status = 'upcoming' AND day >= ?`)
+    .all(doctorId, fromDay) as { day: string; time: string }[];
+
+/** Upcoming visits that fall outside these weekly hours (they stay booked; the admin is told). */
+export const countOutsideWeekly = (doctorId: string, weekly: WeeklySchedule) =>
+  upcomingFor(doctorId, localDay()).filter(
+    (a) => !slotsForDay(weekly[weekdayOf(a.day)]).some((s) => s.minutes === minutesOf(a.time))
+  ).length;
+
+/** Upcoming visits between two days, inclusive. */
+export const countInRange = (doctorId: string, startDay: string, endDay: string) =>
+  upcomingFor(doctorId, localDay()).filter((a) => startDay <= a.day && a.day <= endDay).length;

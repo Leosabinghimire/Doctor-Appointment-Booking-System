@@ -69,6 +69,8 @@ export interface TimeSlot {
 export interface DoctorAvailability {
   date: string;
   slots: TimeSlot[];
+  /** True when the doctor doesn't work that day (day off or time off) — as opposed to fully booked. */
+  closed?: boolean;
 }
 
 export interface DoctorFilters {
@@ -80,4 +82,36 @@ export interface DoctorFilters {
   minRating?: number;
   maxFee?: number;
   sortBy?: 'rating' | 'experience' | 'fee';
+}
+
+/** One working day. Times are 24-hour "HH:MM". The break is optional. */
+export interface WorkingDay {
+  start: string;
+  end: string;
+  breakStart?: string;
+  breakEnd?: string;
+}
+
+/** Index 0 = Sunday … 6 = Saturday. `null` means the doctor doesn't work that day. */
+export type WeeklySchedule = (WorkingDay | null)[];
+
+/** A period when the doctor can't be booked (holiday, leave, conference). Days are "YYYY-MM-DD", inclusive. */
+export interface TimeOff {
+  id: string;
+  startDay: string;
+  endDay: string;
+  reason: string;
+}
+
+export interface DoctorSchedule {
+  weekly: WeeklySchedule;
+  /** True when the doctor uses the clinic's default hours. */
+  isDefault: boolean;
+  timeOff: TimeOff[];
+}
+
+/** Returned after a schedule change: how many already-booked visits now fall outside it. */
+export interface ScheduleChangeResult {
+  schedule: DoctorSchedule;
+  affectedAppointments: number;
 }
