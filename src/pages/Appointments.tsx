@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog, EmptyState, Loader, PageHeader } from '@/components/ui';
 import { AppointmentCard } from '@/components/appointment';
 import { useAppointments, useCancelAppointment } from '@/hooks/appointments';
+import { useReminderCall } from '@/hooks/calls';
 import { ROUTES } from '@/constants';
 import type { AppointmentStatus } from '@/types';
 
@@ -19,9 +20,10 @@ export const Appointments = () => {
   const navigate = useNavigate();
   const { data: appointments, isLoading } = useAppointments();
   const { mutate: cancelAppointment } = useCancelAppointment();
+  const { mutate: requestReminderCall } = useReminderCall();
   const [tab, setTab] = useState(0);
   const [pendingCancel, setPendingCancel] = useState<string | null>(null);
-  const [toast, setToast] = useState(false);
+  const [toast, setToast] = useState<{ severity: 'success' | 'error'; message: string } | null>(null);
 
   const filtered = useMemo(() => {
     const status = TAB_FILTERS[tab];
@@ -34,9 +36,17 @@ export const Appointments = () => {
     if (pendingCancel) {
       cancelAppointment(pendingCancel);
       setPendingCancel(null);
-      setToast(true);
+      setToast({ severity: 'success', message: 'Appointment cancelled.' });
     }
   };
+
+  const handleReminderCall = (id: string) =>
+    requestReminderCall(id, {
+      onSuccess: (result) =>
+        setToast({ severity: result.placed ? 'success' : 'error', message: result.message }),
+      onError: (error) =>
+        setToast({ severity: 'error', message: (error as { message?: string }).message ?? 'Could not place call.' }),
+    });
 
   return (
     <Box>
@@ -73,6 +83,7 @@ export const Appointments = () => {
               key={a.id}
               appointment={a}
               onCancel={(id) => setPendingCancel(id)}
+              onReminderCall={handleReminderCall}
               index={i}
             />
           ))}
@@ -90,13 +101,13 @@ export const Appointments = () => {
       />
 
       <Snackbar
-        open={toast}
+        open={Boolean(toast)}
         autoHideDuration={2200}
-        onClose={() => setToast(false)}
+        onClose={() => setToast(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert severity="success" variant="filled">
-          Appointment cancelled.
+        <Alert severity={toast?.severity ?? 'success'} variant="filled">
+          {toast?.message}
         </Alert>
       </Snackbar>
     </Box>

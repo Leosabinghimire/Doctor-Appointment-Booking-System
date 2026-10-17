@@ -9,3 +9,4 @@ dist-ssr
 .idea
 .DS_Store
 *.log
+.playwright-mcp

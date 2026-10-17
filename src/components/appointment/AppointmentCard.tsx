@@ -16,6 +16,7 @@ import {
   LocalHospital,
   Cancel,
   ArrowForward,
+  PhoneInTalk,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -27,10 +28,11 @@ import { ROUTES } from '@/constants';
 interface Props {
   appointment: Appointment;
   onCancel?: (id: string) => void;
+  onReminderCall?: (id: string) => void;
   index?: number;
 }
 
-export const AppointmentCard = ({ appointment, onCancel, index = 0 }: Props) => {
+export const AppointmentCard = ({ appointment, onCancel, onReminderCall, index = 0 }: Props) => {
   const navigate = useNavigate();
   const isUpcoming = appointment.status === 'upcoming';
   const isVideo = appointment.type === 'video';
@@ -109,6 +111,13 @@ export const AppointmentCard = ({ appointment, onCancel, index = 0 }: Props) => 
             >
               Details
             </Button>
+          )}
+          {isUpcoming && onReminderCall && (
+            <Tooltip title="Get a phone reminder">
+              <IconButton color="primary" onClick={() => onReminderCall(appointment.id)}>
+                <PhoneInTalk />
+              </IconButton>
+            </Tooltip>
           )}
           {isUpcoming && onCancel && (
             <Tooltip title="Cancel appointment">

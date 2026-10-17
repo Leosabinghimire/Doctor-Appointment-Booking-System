@@ -10,3 +10,4 @@ export * from './Notifications';
 export * from './Profile';
 export * from './AdminDashboard';
 export * from './NotFound';
+export * from './CallLogs';

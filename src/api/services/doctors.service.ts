@@ -1,4 +1,6 @@
-import { fakeDelay } from '@/api/client';
+import { axiosClient, fakeDelay } from '@/api/client';
+import { DOCTOR_ENDPOINTS } from '@/api/endpoints';
+import { env } from '@/config';
 import { mockDoctors, mockAvailability } from '@/data/mock';
 import type { Doctor, DoctorAvailability, DoctorFilters } from '@/types';
 
@@ -49,20 +51,26 @@ const applyFilters = (list: Doctor[], filters?: DoctorFilters): Doctor[] => {
 
 export const doctorsService = {
   list: async (filters?: DoctorFilters): Promise<Doctor[]> => {
-    // const { data } = await axiosClient.get<Doctor[]>(DOCTOR_ENDPOINTS.list, { params: filters });
-    // return data;
+    if (!env.useMockApi) {
+      const { data } = await axiosClient.get<Doctor[]>(DOCTOR_ENDPOINTS.list, { params: filters });
+      return data;
+    }
     return fakeDelay(applyFilters(mockDoctors, filters), 400);
   },
 
   get: async (id: string): Promise<Doctor | undefined> => {
-    // const { data } = await axiosClient.get<Doctor>(DOCTOR_ENDPOINTS.detail(id));
-    // return data;
+    if (!env.useMockApi) {
+      const { data } = await axiosClient.get<Doctor>(DOCTOR_ENDPOINTS.detail(id));
+      return data;
+    }
     return fakeDelay(mockDoctors.find((d) => d.id === id), 300);
   },
 
   availability: async (id: string): Promise<DoctorAvailability[]> => {
-    // const { data } = await axiosClient.get<DoctorAvailability[]>(DOCTOR_ENDPOINTS.availability(id));
-    // return data;
+    if (!env.useMockApi) {
+      const { data } = await axiosClient.get<DoctorAvailability[]>(DOCTOR_ENDPOINTS.availability(id));
+      return data;
+    }
     return fakeDelay(mockAvailability(id), 350);
   },
 };

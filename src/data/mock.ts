@@ -8,6 +8,7 @@ import type {
   DoctorAvailability,
   TimeSlot,
   AdminStats,
+  CallLog,
 } from '@/types';
 
 const today = new Date();
@@ -493,6 +494,70 @@ export const mockNotifications: AppNotification[] = [
     message: 'Your insurance information has been verified successfully.',
     timestamp: addDays(-5),
     read: true,
+  },
+];
+
+const addMinutes = (iso: string, m: number) => new Date(new Date(iso).getTime() + m * 60_000).toISOString();
+
+const callStart = addDays(-2);
+const inboundStart = addDays(-1);
+const callbackStart = addDays(0);
+
+export const mockCallLogs: CallLog[] = [
+  {
+    id: 'c1',
+    provider: 'telentir',
+    externalCallId: 'demo-call-001',
+    direction: 'outbound',
+    contactName: 'Alex Morgan',
+    contactPhone: '+1 (555) 234-7890',
+    clinicNumber: '+1 (555) 010-0100',
+    startedAt: callStart,
+    endedAt: addMinutes(callStart, 1.5),
+    durationSec: 92,
+    status: 'completed',
+    summary: 'Reminder for the video consult with Dr. Sarah Johnson. Patient confirmed they will attend.',
+    appointmentId: 'a1',
+    transcript: [
+      { speaker: 'agent', text: 'Hi Alex, this is MediCare+ calling to remind you about your video consult with Dr. Sarah Johnson tomorrow at 10:30 AM.', at: callStart },
+      { speaker: 'caller', text: 'Thanks, I remember.', at: addMinutes(callStart, 0.3) },
+      { speaker: 'agent', text: 'Will you be able to attend?', at: addMinutes(callStart, 0.4) },
+      { speaker: 'caller', text: 'Yes, I’ll be there.', at: addMinutes(callStart, 0.6) },
+      { speaker: 'agent', text: 'Great. You can join from the Appointments page. Goodbye!', at: addMinutes(callStart, 0.8) },
+    ],
+  },
+  {
+    id: 'c2',
+    provider: 'telentir',
+    externalCallId: 'demo-call-002',
+    direction: 'inbound',
+    contactPhone: '+1 (555) 880-1122',
+    clinicNumber: '+1 (555) 010-0100',
+    startedAt: inboundStart,
+    endedAt: addMinutes(inboundStart, 2),
+    durationSec: 128,
+    status: 'completed',
+    summary: 'Caller asked which dermatologists offer video consults and their fees. Answered from the knowledge base.',
+    transcript: [
+      { speaker: 'agent', text: 'Thanks for calling MediCare+. How can I help?', at: inboundStart },
+      { speaker: 'caller', text: 'Do any of your dermatologists do video appointments?', at: addMinutes(inboundStart, 0.3) },
+      { speaker: 'agent', text: 'Yes — Dr. Michael Chen offers video consults. His consultation fee is $90.', at: addMinutes(inboundStart, 0.7) },
+      { speaker: 'caller', text: 'Great, I’ll book online. Thanks.', at: addMinutes(inboundStart, 1.2) },
+    ],
+  },
+  {
+    id: 'c3',
+    provider: 'telentir',
+    externalCallId: 'demo-call-003',
+    direction: 'inbound',
+    contactPhone: '+1 (555) 431-9087',
+    clinicNumber: '+1 (555) 010-0100',
+    startedAt: callbackStart,
+    endedAt: addMinutes(callbackStart, 1),
+    durationSec: 54,
+    status: 'callback',
+    summary: 'Caller asked to change a prescription dose. Agent requested a callback from clinic staff.',
+    transcript: [],
   },
 ];
 

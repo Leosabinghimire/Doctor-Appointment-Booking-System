@@ -149,18 +149,20 @@ src/
 
 ### Swap mock → real API
 
-Each service has commented-out real Axios calls alongside the mock implementation:
+Every service checks `env.useMockApi` and calls the real backend through Axios when it is off:
 
 ```ts
 // src/api/services/doctors.service.ts
 list: async (filters?: DoctorFilters): Promise<Doctor[]> => {
-  // const { data } = await axiosClient.get<Doctor[]>(DOCTOR_ENDPOINTS.list, { params: filters });
-  // return data;
+  if (!env.useMockApi) {
+    const { data } = await axiosClient.get<Doctor[]>(DOCTOR_ENDPOINTS.list, { params: filters });
+    return data;
+  }
   return fakeDelay(applyFilters(mockDoctors, filters), 400);
 },
 ```
 
-Toggle `VITE_USE_MOCK=false` and uncomment — components and hooks need no changes.
+Set `VITE_USE_MOCK=false` (see [Backend](#backend-server)) — components and hooks need no changes.
 
 ## Getting Started
 
@@ -287,29 +289,45 @@ The `@/*` path alias is mirrored in [tsconfig.json](tsconfig.json) under `compil
 
 ## API Integration
 
-The mock layer in [src/api/services/](src/api/services/) matches the shape of a real REST backend. Each service file shows the real Axios call commented above the mock implementation:
-
-```ts
-// src/api/services/doctors.service.ts
-import { axiosClient, fakeDelay } from '@/api/client';
-import { DOCTOR_ENDPOINTS } from '@/api/endpoints';
-
-export const doctorsService = {
-  list: async (filters?: DoctorFilters): Promise<Doctor[]> => {
-    // const { data } = await axiosClient.get<Doctor[]>(DOCTOR_ENDPOINTS.list, { params: filters });
-    // return data;
-    return fakeDelay(applyFilters(mockDoctors, filters), 400);
-  },
-};
-```
-
-To wire to a real backend:
-
-1. Set `VITE_API_URL` and `VITE_USE_MOCK=false` in `.env.local`
-2. Uncomment the Axios call in each service
-3. Remove the `return fakeDelay(...)` line
+The mock layer in [src/api/services/](src/api/services/) matches the shape of the REST backend in [server/](server/). Each service returns mock data when `VITE_USE_MOCK=true` and calls the backend through Axios when it is `false`.
 
 Hooks ([useDoctors](src/hooks/doctors/useDoctors.ts), [useAppointments](src/hooks/appointments/useAppointments.ts), …) and UI components require **no changes** — they only see the service interface.
+
+## Backend server
+
+[server/](server/) is a Node.js + TypeScript (Express) REST API implementing every endpoint in [src/api/endpoints/](src/api/endpoints/). Data lives in memory, seeded from [src/data/mock.ts](src/data/mock.ts), and resets on restart — swap [server/src/db.ts](server/src/db.ts) for a real database when ready. Booking goes through a single path that rejects double-booked slots (`409 SLOT_TAKEN`).
+
+```bash
+npm run server:install     # once
+npm run server             # http://localhost:4000/v1  (in a second terminal)
+```
+
+Then point the frontend at it in `.env.local` and restart `npm run dev`:
+
+```env
+VITE_API_URL=http://localhost:4000/v1
+VITE_USE_MOCK=false
+```
+
+## Telentir AI voice agent
+
+The backend integrates [Telentir](https://docs.telentir.com) via its official SDK (`@silyze/telentir-sdk`). The API key stays on the server; the browser only talks to our REST API.
+
+| Feature | How | Where |
+| --- | --- | --- |
+| **Call logs** | Polls `telentir.calls.all()` (every `TELENTIR_SYNC_INTERVAL_SEC`) and decrypts transcripts | `/calls` page · [server/src/telentir/calls.ts](server/src/telentir/calls.ts) |
+| **Reminder calls** | `telentir.sessions.call()` with a reminder prompt for the appointment | Phone icon on upcoming appointments · [reminders.ts](server/src/telentir/reminders.ts) |
+| **Clinic knowledge base** | Uploads the doctor directory so inbound callers can ask about doctors, fees, visit types | `npm --prefix server run telentir:knowledge` · [knowledge.ts](server/src/telentir/knowledge.ts) |
+
+Setup:
+
+1. Copy `server/.env.example` to `server/.env`.
+2. Create an API key in the Telentir dashboard → `TELENTIR_API_KEY`.
+3. Create an AI agent in Telentir → `TELENTIR_AGENT_ID`.
+4. Optionally run `npm --prefix server run telentir:knowledge` and set the printed `TELENTIR_KNOWLEDGE_BASE_ID`; attach it to your inbound configuration in the Telentir dashboard.
+5. Restart the server. Without a key, everything else works and the Call Logs page shows demo calls.
+
+**Not supported yet:** Telentir's docs do not describe a way for the agent to call our API mid-call, so phone callers can't book directly into this system. The agent answers questions and requests staff callbacks; bookings happen in the app. The transcript format is also undocumented, so [normalizeTranscript](server/src/telentir/calls.ts) accepts the likely shapes — verify it against a real call.
 
 ## Routes
 
@@ -325,6 +343,7 @@ Hooks ([useDoctors](src/hooks/doctors/useDoctors.ts), [useAppointments](src/hook
 | `/video` / `/video/:appointmentId` | Video Consultation |
 | `/notifications` | Notifications |
 | `/admin` | Admin Dashboard |
+| `/calls` | Call Logs (Telentir) |
 
 ## Design Notes
 

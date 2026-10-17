@@ -6,3 +6,4 @@ export * from './prescription.types';
 export * from './notification.types';
 export * from './admin.types';
 export * from './auth.types';
+export * from './call.types';

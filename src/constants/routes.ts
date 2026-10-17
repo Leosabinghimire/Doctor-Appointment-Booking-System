@@ -12,6 +12,7 @@ export const ROUTES = {
   notifications: '/notifications',
   profile: '/profile',
   admin: '/admin',
+  calls: '/calls',
   notFound: '/404',
 } as const;
 

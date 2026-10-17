@@ -8,6 +8,7 @@ import {
   Notifications,
   AdminPanelSettings,
   EventAvailable,
+  PhoneInTalk,
 } from '@mui/icons-material';
 import type { ComponentType } from 'react';
 import { ROUTES } from '@/constants';
@@ -30,4 +31,5 @@ export const primaryNav: readonly NavItem[] = [
   { label: 'Video Consult', to: ROUTES.video, icon: Videocam, group: 'Health' },
   { label: 'Notifications', to: ROUTES.notifications, icon: Notifications, group: 'Health' },
   { label: 'Admin Panel', to: ROUTES.admin, icon: AdminPanelSettings, group: 'Manage' },
+  { label: 'Call Logs', to: ROUTES.calls, icon: PhoneInTalk, group: 'Manage' },
 ] as const;

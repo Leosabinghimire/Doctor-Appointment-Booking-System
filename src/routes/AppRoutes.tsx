@@ -4,6 +4,7 @@ import {
   AdminDashboard,
   Appointments,
   BookAppointment,
+  CallLogs,
   Dashboard,
   DoctorDetail,
   Doctors,
@@ -32,6 +33,7 @@ export const AppRoutes = () => (
       <Route path={ROUTES.notifications} element={<NotificationsPage />} />
       <Route path={ROUTES.profile} element={<Profile />} />
       <Route path={ROUTES.admin} element={<AdminDashboard />} />
+      <Route path={ROUTES.calls} element={<CallLogs />} />
       <Route path={ROUTES.notFound} element={<NotFound />} />
       <Route path="*" element={<Navigate to={ROUTES.notFound} replace />} />
     </Route>
