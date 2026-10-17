@@ -1,10 +1,11 @@
-import { Router, type Request } from 'express';
+import express, { Router, type Request } from 'express';
 import type { BookingPayload, Doctor } from '../../../src/types';
 import { currentUser, isAdmin, requireAuth, requireRole } from '../auth/middleware';
 import { authRoutes } from '../auth/routes';
 import { bookAppointment, cancelAppointment } from '../booking';
 import { appointmentsRepo, getAvailability } from '../repos/appointments';
 import { doctorsRepo } from '../repos/doctors';
+import { PHOTO_MAX_BYTES, doctorPhotosRepo, sniffImageType } from '../repos/doctorPhotos';
 import { patientsRepo } from '../repos/patients';
 import { medicalRecordsRepo, notificationsRepo, prescriptionsRepo } from '../repos/records';
 import { computeAdminStats } from '../repos/stats';
@@ -96,6 +97,18 @@ api.get('/doctors', (req, res) => {
 });
 api.get('/doctors/:id', (req, res) => {
   res.json(findOr404(doctorsRepo.get(req.params.id), 'Doctor'));
+});
+// Public: patients see photos, and appointment cards still show archived doctors' photos.
+api.get('/doctors/:id/photo', (req, res) => {
+  const photo = findOr404(doctorPhotosRepo.get(req.params.id), 'Photo');
+  res.set({
+    'Content-Type': photo.mime,
+    // URLs carry ?v=<updated_at>, so a cached copy is never stale.
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "default-src 'none'",
+  });
+  res.send(photo.data);
 });
 api.get('/doctors/:id/availability', (req, res) => {
   findOr404(doctorsRepo.get(req.params.id), 'Doctor');
@@ -197,6 +210,26 @@ api.post('/admin/doctors', requireRole('admin'), (req, res) => {
 api.put('/admin/doctors/:id', requireRole('admin'), (req, res) => {
   const input = parseDoctorInput(req.body);
   if (!doctorsRepo.update(req.params.id, input)) throw new HttpError(404, 'Doctor not found', 'NOT_FOUND');
+  res.json(doctorsRepo.adminList().find((d) => d.id === req.params.id));
+});
+// Photo upload: the request body is the image itself (Content-Type: image/jpeg|png|webp).
+api.put(
+  '/admin/doctors/:id/photo',
+  requireRole('admin'),
+  express.raw({ type: () => true, limit: PHOTO_MAX_BYTES }),
+  (req, res) => {
+    if (!doctorsRepo.exists(req.params.id)) throw new HttpError(404, 'Doctor not found', 'NOT_FOUND');
+    const data = req.body as Buffer;
+    if (!Buffer.isBuffer(data) || data.length === 0) throw new HttpError(400, 'No photo was sent', 'VALIDATION');
+    const mime = sniffImageType(data);
+    if (!mime) throw new HttpError(400, 'Photo must be a JPEG, PNG or WebP image', 'UNSUPPORTED_IMAGE');
+    doctorPhotosRepo.save(req.params.id, mime, data);
+    res.json(doctorsRepo.adminList().find((d) => d.id === req.params.id));
+  }
+);
+api.delete('/admin/doctors/:id/photo', requireRole('admin'), (req, res) => {
+  if (!doctorsRepo.exists(req.params.id)) throw new HttpError(404, 'Doctor not found', 'NOT_FOUND');
+  doctorPhotosRepo.remove(req.params.id);
   res.json(doctorsRepo.adminList().find((d) => d.id === req.params.id));
 });
 // Archive / restore. Archived doctors are hidden from patients; their existing appointments are kept.

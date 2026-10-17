@@ -4,4 +4,5 @@ export const ADMIN_ENDPOINTS = {
   doctors: '/admin/doctors',
   doctor: (id: string) => `/admin/doctors/${id}`,
   doctorStatus: (id: string) => `/admin/doctors/${id}/status`,
+  doctorPhoto: (id: string) => `/admin/doctors/${id}/photo`,
 } as const;

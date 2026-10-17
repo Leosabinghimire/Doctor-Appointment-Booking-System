@@ -2,8 +2,12 @@ import type { AdminDoctor, Doctor, DoctorInput } from '../../../src/types';
 import { sql } from '../db/connection';
 import { localDay, newId } from '../util';
 import { getAvailability } from './appointments';
+import { avatarUrl } from './doctorPhotos';
 
-type Row = { data: string; active: number };
+type Row = { data: string; active: number; photo_at: number | null };
+
+// Every doctor read joins the photo table so avatar URLs are always right.
+const FROM = `FROM doctors d LEFT JOIN doctor_photos p ON p.doctor_id = d.id`;
 
 /** Weekday + time of the doctor's next open slot, from the real schedule. */
 const liveAvailability = (doctorId: string): Pick<Doctor, 'availableToday' | 'nextSlot'> => {
@@ -25,17 +29,24 @@ const liveAvailability = (doctorId: string): Pick<Doctor, 'availableToday' | 'ne
 
 const toDoctor = (row: Row): Doctor => {
   const doctor = JSON.parse(row.data) as Doctor;
-  return { ...doctor, ...liveAvailability(doctor.id), active: row.active === 1 };
+  return {
+    ...doctor,
+    ...liveAvailability(doctor.id),
+    avatar: avatarUrl(doctor.id, row.photo_at, doctor.avatar),
+    active: row.active === 1,
+  };
 };
 
 export const doctorsRepo = {
   /** Doctors patients can see and book. */
   all: (): Doctor[] =>
-    (sql.prepare('SELECT data, active FROM doctors WHERE active = 1 ORDER BY rowid').all() as Row[]).map(toDoctor),
+    (sql.prepare(`SELECT d.data, d.active, p.updated_at AS photo_at ${FROM} WHERE d.active = 1 ORDER BY d.rowid`).all() as Row[]).map(toDoctor),
 
   /** Active doctor by id — archived doctors are hidden from patients and can't be booked. */
   get: (id: string): Doctor | undefined => {
-    const row = sql.prepare('SELECT data, active FROM doctors WHERE id = ? AND active = 1').get(id) as Row | undefined;
+    const row = sql
+      .prepare(`SELECT d.data, d.active, p.updated_at AS photo_at ${FROM} WHERE d.id = ? AND d.active = 1`)
+      .get(id) as Row | undefined;
     return row && toDoctor(row);
   },
 
@@ -44,12 +55,17 @@ export const doctorsRepo = {
     (
       sql
         .prepare(
-          `SELECT d.data, d.active,
+          `SELECT d.data, d.active, p.updated_at AS photo_at,
              (SELECT COUNT(*) FROM appointments a WHERE a.doctor_id = d.id AND a.status = 'upcoming') AS upcoming
-           FROM doctors d ORDER BY d.active DESC, d.rowid`
+           ${FROM} ORDER BY d.active DESC, d.rowid`
         )
         .all() as (Row & { upcoming: number })[]
-    ).map((row) => ({ ...toDoctor(row), active: row.active === 1, upcomingAppointments: row.upcoming })),
+    ).map((row) => ({
+      ...toDoctor(row),
+      active: row.active === 1,
+      upcomingAppointments: row.upcoming,
+      hasUploadedPhoto: row.photo_at !== null,
+    })),
 
   exists: (id: string) => Boolean(sql.prepare('SELECT 1 FROM doctors WHERE id = ?').get(id)),
 
@@ -73,12 +89,18 @@ export const doctorsRepo = {
     return id;
   },
 
-  /** Replaces the editable fields; keeps id and rating. */
+  /**
+   * Replaces the editable fields; keeps id and rating. While an uploaded photo exists, the
+   * stored link is left alone (the form shows the photo's URL, which must not be saved as a link).
+   */
   update: (id: string, input: DoctorInput) => {
-    const row = sql.prepare('SELECT data FROM doctors WHERE id = ?').get(id) as { data: string } | undefined;
+    const row = sql
+      .prepare(`SELECT d.data, p.updated_at AS photo_at ${FROM} WHERE d.id = ?`)
+      .get(id) as { data: string; photo_at: number | null } | undefined;
     if (!row) return false;
     const current = JSON.parse(row.data) as Doctor;
-    sql.prepare('UPDATE doctors SET data = ? WHERE id = ?').run(JSON.stringify({ ...current, ...input, id }), id);
+    const avatar = row.photo_at === null ? input.avatar : current.avatar;
+    sql.prepare('UPDATE doctors SET data = ? WHERE id = ?').run(JSON.stringify({ ...current, ...input, avatar, id }), id);
     return true;
   },
 

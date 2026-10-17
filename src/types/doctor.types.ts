@@ -56,6 +56,8 @@ export type DoctorInput = Pick<
 export interface AdminDoctor extends Doctor {
   active: boolean;
   upcomingAppointments: number;
+  /** True when the photo was uploaded (stored by the clinic) rather than pasted as a link. */
+  hasUploadedPhoto: boolean;
 }
 
 export interface TimeSlot {

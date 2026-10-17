@@ -70,7 +70,6 @@ These parts of the interface are placeholders. They're listed here so nobody mis
 | Editing your profile | Profile is read-only |
 | Email / SMS confirmations | Not sent — confirmations appear in **Notifications** |
 | Doctor reviews and ratings | No review system; new doctors show **New** |
-| Doctor photos | Pasted as a web link; no file upload |
 | Per-doctor schedules | Every doctor works 09:00–17:00, Monday–Saturday |
 | Booking by phone through the AI agent | Not possible with Telentir's documented API (see [Telentir](#telentir-ai-voice-agent)) |
 
@@ -92,6 +91,7 @@ Every page except `/login` requires signing in. **The backend checks permissions
 
 Admins manage doctors at **Manage Doctors** (`/manage-doctors`).
 
+- **Photos.** Upload a JPEG, PNG or WebP photo, or paste a link to one. Uploads are shrunk in the browser to 512 px (usually under 100 KB) and stored inside the database, so backing up `medicare.db` also backs up the photos. The server checks the file's actual contents, so a renamed non-image file is rejected.
 - **Archive instead of delete.** Archived doctors disappear from patient search and booking, but past and already-booked appointments are kept. The archive dialog shows how many upcoming visits the doctor still has, so you can contact those patients. Archived doctors can be restored.
 - **Checked on the server:** required fields, a specialty from the list, experience 0–70 years, fee 0–10,000, at least one language, at least one visit type (video / in-person), and photo links must start with `https://`. All problems are reported together.
 - **Computed, not typed:** "Next available" and "Available today" come from the real schedule and existing bookings.
@@ -146,6 +146,7 @@ Copy [server/.env.example](server/.env.example). All values are optional in deve
 | Variable | Needed in production | Meaning |
 | --- | --- | --- |
 | `PORT` | | Backend port (default `4000`) |
+| `PUBLIC_URL` | ✔ | The backend's public web address, used in doctor photo links (default `http://localhost:4000`) |
 | `CORS_ORIGIN` | ✔ | Web address(es) of the frontend, comma-separated |
 | `DATABASE_PATH` | | SQLite file (default `server/data/medicare.db`) |
 | `JWT_SECRET` | ✔ | Long random string that signs sessions |
@@ -165,7 +166,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 With `NODE_ENV=production`, the backend **refuses to start** unless `JWT_SECRET` and `ADMIN_PASSWORD` are set, and it adds no sample doctors or demo accounts. In addition:
 
 - [ ] Serve the frontend and backend over **HTTPS** only
-- [ ] Set `CORS_ORIGIN` to your real frontend address
+- [ ] Set `CORS_ORIGIN` to your real frontend address, and `PUBLIC_URL` to the backend's address
 - [ ] Back up `server/data/medicare.db` automatically, and test restoring it
 - [ ] Add your real doctors in **Manage Doctors**
 - [ ] If you handle real US patient data: confirm HIPAA requirements, and get a Business Associate Agreement (BAA) from Telentir before enabling it

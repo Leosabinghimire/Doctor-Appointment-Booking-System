@@ -113,6 +113,16 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE doctors ADD COLUMN active INTEGER NOT NULL DEFAULT 1;
   `,
+
+  // 3 — uploaded doctor photos, kept in the database so one backup file holds everything
+  `
+  CREATE TABLE doctor_photos (
+    doctor_id  TEXT PRIMARY KEY REFERENCES doctors(id) ON DELETE CASCADE,
+    mime       TEXT NOT NULL CHECK (mime IN ('image/jpeg', 'image/png', 'image/webp')),
+    data       BLOB NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export const migrate = (db: Database.Database) => {

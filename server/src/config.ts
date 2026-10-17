@@ -36,6 +36,8 @@ export const config = {
   port: Number(process.env.PORT ?? 4000),
   corsOrigins: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map((o) => o.trim()),
   isProduction,
+  // The backend's public address, used in photo links. Behind a proxy, set PUBLIC_URL (e.g. https://api.example.com).
+  publicUrl: (optional(process.env.PUBLIC_URL) ?? `http://localhost:${process.env.PORT ?? 4000}`).replace(/\/+$/, ''),
   // SQLite file. Default: server/data/medicare.db. Use ":memory:" for a throwaway database.
   databasePath: optional(process.env.DATABASE_PATH) ?? `${dataDir}medicare.db`,
   auth: {

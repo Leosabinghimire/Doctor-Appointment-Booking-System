@@ -23,7 +23,7 @@ import { formatCurrency, initials } from '@/utils/format';
 import type { AdminDoctor, ApiError } from '@/types';
 import { DoctorFormDialog } from './DoctorFormDialog';
 
-type Toast = { severity: 'success' | 'error'; message: string } | null;
+type Toast = { severity: 'success' | 'warning' | 'error'; message: string } | null;
 
 export const ManageDoctors = () => {
   const { data: doctors, isLoading } = useAdminDoctors();
@@ -190,7 +190,7 @@ export const ManageDoctors = () => {
         open={formOpen}
         doctor={editing}
         onClose={() => setFormOpen(false)}
-        onSaved={(message) => setToast({ severity: 'success', message })}
+        onSaved={(message, severity = 'success') => setToast({ severity, message })}
       />
 
       <ConfirmDialog
@@ -214,7 +214,7 @@ export const ManageDoctors = () => {
 
       <Snackbar
         open={Boolean(toast)}
-        autoHideDuration={3000}
+        autoHideDuration={toast?.severity === 'warning' ? 8000 : 3000}
         onClose={() => setToast(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >

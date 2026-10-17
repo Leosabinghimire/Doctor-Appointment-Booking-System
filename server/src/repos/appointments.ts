@@ -8,6 +8,7 @@ import type {
 } from '../../../src/types';
 import { sql } from '../db/connection';
 import { addDays, localDay, minutesOf, weekdayOf } from '../util';
+import { avatarUrl } from './doctorPhotos';
 
 interface Row {
   id: string;
@@ -23,6 +24,7 @@ interface Row {
   meeting_link: string | null;
   fee: number;
   doctor: string;
+  photo_at: number | null;
 }
 
 const toAppointment = (r: Row): Appointment => {
@@ -32,7 +34,7 @@ const toAppointment = (r: Row): Appointment => {
     doctorId: r.doctor_id,
     doctorName: doctor.name,
     doctorSpecialty: doctor.specialty,
-    doctorAvatar: doctor.avatar,
+    doctorAvatar: avatarUrl(r.doctor_id, r.photo_at, doctor.avatar),
     patientId: r.patient_id,
     patientName: r.patient_name,
     date: r.day,
@@ -46,7 +48,8 @@ const toAppointment = (r: Row): Appointment => {
   };
 };
 
-const SELECT = `SELECT a.*, d.data AS doctor FROM appointments a JOIN doctors d ON d.id = a.doctor_id`;
+const SELECT = `SELECT a.*, d.data AS doctor, p.updated_at AS photo_at
+  FROM appointments a JOIN doctors d ON d.id = a.doctor_id LEFT JOIN doctor_photos p ON p.doctor_id = a.doctor_id`;
 // Upcoming visits soonest first, then past ones newest first.
 const ORDER = `ORDER BY a.status != 'upcoming', CASE WHEN a.status = 'upcoming' THEN a.day END ASC, a.day DESC`;
 const ACTIVE = `('upcoming', 'in-progress')`;
