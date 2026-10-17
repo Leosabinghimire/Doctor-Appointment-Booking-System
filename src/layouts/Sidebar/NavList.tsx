@@ -12,6 +12,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useMemo } from 'react';
 import { primaryNav, type NavItem } from '../navItems';
 import { ROUTES } from '@/constants';
+import { useUserRole } from '@/store/auth';
 
 interface Props {
   onNavigate?: () => void;
@@ -29,7 +30,15 @@ export const NavList = ({ onNavigate }: Props) => {
   const theme = useTheme();
   const location = useLocation();
 
-  const groups = useMemo(() => groupBy(primaryNav, (i: NavItem) => i.group), []);
+  const role = useUserRole();
+  const groups = useMemo(
+    () =>
+      groupBy(
+        primaryNav.filter((i) => !i.roles || (role && i.roles.includes(role))),
+        (i: NavItem) => i.group
+      ),
+    [role]
+  );
 
   const isActive = (to: string) =>
     to === ROUTES.dashboard ? location.pathname === to : location.pathname.startsWith(to);

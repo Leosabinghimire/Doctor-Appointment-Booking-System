@@ -6,3 +6,4 @@ export * from './notifications';
 export * from './admin';
 export * from './common';
 export * from './calls';
+export * from './auth';

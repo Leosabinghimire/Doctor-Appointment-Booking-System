@@ -16,11 +16,12 @@ export interface Patient {
   email: string;
   phone: string;
   avatar: string;
-  age: number;
-  gender: Gender;
-  bloodGroup: BloodGroup;
-  height: number;
-  weight: number;
+  // Optional: unknown until the patient fills in their profile. Never guess medical data.
+  age?: number;
+  gender?: Gender;
+  bloodGroup?: BloodGroup;
+  height?: number;
+  weight?: number;
   allergies: string[];
   chronicConditions: string[];
   emergencyContact: EmergencyContact;

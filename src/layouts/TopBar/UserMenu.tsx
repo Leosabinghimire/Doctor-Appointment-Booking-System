@@ -11,13 +11,15 @@ import {
 import { Logout, Person, Settings } from '@mui/icons-material';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCurrentUser, useAuthStore } from '@/store/auth';
+import { useCurrentUser } from '@/store/auth';
+import { useLogout } from '@/hooks/auth';
 import { initials } from '@/utils/format';
 import { ROUTES } from '@/constants';
 
 export const UserMenu = () => {
   const user = useCurrentUser();
-  const logout = useAuthStore((s) => s.logout);
+  const logout = useLogout();
+  const isPatient = user?.role === 'patient';
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -50,8 +52,8 @@ export const UserMenu = () => {
           <Typography fontSize={13.5} fontWeight={700} lineHeight={1.1}>
             {user?.name ?? 'Guest'}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Patient
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+            {user?.role}
           </Typography>
         </Box>
       </Box>
@@ -64,14 +66,16 @@ export const UserMenu = () => {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         slotProps={{ paper: { sx: { mt: 1, minWidth: 200, borderRadius: 2 } } }}
       >
-        <MenuItem
-          onClick={() => {
-            navigate(ROUTES.profile);
-            close();
-          }}
-        >
-          <ListItemIcon><Person fontSize="small" /></ListItemIcon> Profile
-        </MenuItem>
+        {isPatient && (
+          <MenuItem
+            onClick={() => {
+              navigate(ROUTES.profile);
+              close();
+            }}
+          >
+            <ListItemIcon><Person fontSize="small" /></ListItemIcon> Profile
+          </MenuItem>
+        )}
         <MenuItem onClick={close}>
           <ListItemIcon><Settings fontSize="small" /></ListItemIcon> Settings
         </MenuItem>
@@ -80,6 +84,7 @@ export const UserMenu = () => {
           onClick={() => {
             logout();
             close();
+            navigate(ROUTES.login, { replace: true });
           }}
           sx={{ color: 'error.main' }}
         >

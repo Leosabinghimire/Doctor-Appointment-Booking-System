@@ -25,6 +25,10 @@ export const formatRelative = (date: string | Date): string => {
   }
 };
 
+/** "178 cm" or "Not set" for missing optional values. */
+export const withUnit = (value: number | string | undefined, unit = ''): string =>
+  value === undefined || value === '' ? 'Not set' : `${value}${unit ? ` ${unit}` : ''}`;
+
 export const formatCurrency = (amount: number, currency = 'USD'): string =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',

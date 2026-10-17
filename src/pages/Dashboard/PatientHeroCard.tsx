@@ -42,7 +42,13 @@ export const PatientHeroCard = ({ patient, healthScore = 86 }: PatientHeroCardPr
             {patient.name}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3 }}>
-            {patient.age} yrs • {patient.gender} • Blood {patient.bloodGroup}
+            {[
+              patient.age !== undefined && `${patient.age} yrs`,
+              patient.gender,
+              patient.bloodGroup && `Blood ${patient.bloodGroup}`,
+            ]
+              .filter(Boolean)
+              .join(' • ') || 'Complete your profile to add health details'}
           </Typography>
           <Stack direction="row" spacing={0.7} sx={{ mt: 1.2 }} flexWrap="wrap" useFlexGap>
             {patient.chronicConditions.map((c) => (

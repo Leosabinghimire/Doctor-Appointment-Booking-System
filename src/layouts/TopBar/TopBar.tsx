@@ -2,12 +2,14 @@ import { AppBar, Toolbar, Box, IconButton, Stack, alpha } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import { ThemeToggle } from '@/components/ui';
 import { useUiStore } from '@/store/ui';
+import { useIsAdmin } from '@/store/auth';
 import { GlobalSearch } from './GlobalSearch';
 import { NotificationsButton } from './NotificationsButton';
 import { UserMenu } from './UserMenu';
 
 export const TopBar = () => {
   const toggleMobileNav = useUiStore((s) => s.toggleMobileNav);
+  const isAdmin = useIsAdmin();
 
   return (
     <AppBar
@@ -33,7 +35,7 @@ export const TopBar = () => {
 
         <Stack direction="row" spacing={1} alignItems="center">
           <ThemeToggle />
-          <NotificationsButton />
+          {!isAdmin && <NotificationsButton />}
           <UserMenu />
         </Stack>
       </Toolbar>

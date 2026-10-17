@@ -5,3 +5,4 @@ export * from './prescriptions.endpoints';
 export * from './notifications.endpoints';
 export * from './admin.endpoints';
 export * from './calls.endpoints';
+export * from './auth.endpoints';

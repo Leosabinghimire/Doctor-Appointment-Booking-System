@@ -1,31 +1,27 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { mockPatient } from '@/data/mock';
-import type { Patient, UserRole } from '@/types';
+import type { AuthResponse, AuthUser } from '@/types';
 
 interface AuthState {
-  user: Patient | null;
-  role: UserRole;
+  user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  setRole: (role: UserRole) => void;
-  setUser: (user: Patient | null) => void;
-  setToken: (token: string | null) => void;
+  setSession: (session: AuthResponse) => void;
+  setUser: (user: AuthUser | null) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: mockPatient,
-      role: 'patient',
-      token: 'demo-token',
-      isAuthenticated: true,
-      setRole: (role) => set({ role }),
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      setSession: ({ token, user }) => set({ token, user, isAuthenticated: true }),
       setUser: (user) => set({ user }),
-      setToken: (token) => set({ token, isAuthenticated: Boolean(token) }),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
     }),
-    { name: 'medicare-auth' }
+    // v2: the old key held a hard-coded demo session.
+    { name: 'medicare-auth-v2' }
   )
 );

@@ -309,6 +309,28 @@ VITE_API_URL=http://localhost:4000/v1
 VITE_USE_MOCK=false
 ```
 
+## Login & roles
+
+Every page except `/login` requires signing in. The backend checks every request — the frontend guards are only for navigation.
+
+| Role | Sees | Can do |
+| --- | --- | --- |
+| **Patient** | Only their own appointments, prescriptions, history, notifications | Book / cancel their own appointments |
+| **Admin** | All appointments, admin dashboard, call logs | Book for any patient, trigger Telentir syncs and reminder calls |
+
+- Passwords are hashed with scrypt; sessions are signed JWTs (`Authorization: Bearer …`), valid for `JWT_EXPIRES_IN` (default 8h).
+- 5 failed logins for the same email + IP lock that combination for 15 minutes.
+- Patients sign up on the login page. Admin accounts are not self-service — the first admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+
+**Development accounts** (seeded only when `NODE_ENV` is not `production`):
+
+| Email | Password | Role |
+| --- | --- | --- |
+| `alex.morgan@example.com` | `patient-dev-password` | Patient |
+| `admin@medicare.example` | `admin-dev-password` | Admin |
+
+In development the JWT secret is random per server start, so restarting the backend signs everyone out (the in-memory data resets too). In production, set `JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `server/.env` — the server refuses to start without them.
+
 ## Telentir AI voice agent
 
 The backend integrates [Telentir](https://docs.telentir.com) via its official SDK (`@silyze/telentir-sdk`). The API key stays on the server; the browser only talks to our REST API.
@@ -333,6 +355,7 @@ Setup:
 
 | Path | Page |
 | --- | --- |
+| `/login` | Sign in / create account (public) |
 | `/` | Patient Dashboard |
 | `/doctors` | Doctor Listings |
 | `/doctors/:id` | Doctor Detail |

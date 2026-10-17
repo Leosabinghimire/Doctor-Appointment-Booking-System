@@ -14,9 +14,18 @@ import type {
   Appointment,
   CallLog,
   DoctorAvailability,
+  MedicalRecord,
   Patient,
   Prescription,
 } from '../../src/types';
+
+/** Anything that belongs to one patient. Used to scope what each user can see. */
+export interface Owned {
+  patientId?: string;
+}
+
+// The seeded history and notifications have no owner field in the frontend types; they belong to the demo patient.
+type OwnedRecord<T> = T & { patientId: string };
 
 /**
  * In-memory store seeded from the frontend's mock data so both sides agree.
@@ -26,11 +35,11 @@ import type {
 export const db = {
   doctors: mockDoctors,
   patients: [mockPatient] as Patient[],
-  medicalHistory: mockMedicalHistory,
+  medicalHistory: mockMedicalHistory.map((r) => ({ ...r, patientId: mockPatient.id })) as OwnedRecord<MedicalRecord>[],
   prescriptions: [...mockPrescriptions] as Prescription[],
   adminStats: mockAdminStats,
   appointments: [...mockAppointments] as Appointment[],
-  notifications: [...mockNotifications] as AppNotification[],
+  notifications: mockNotifications.map((n) => ({ ...n, patientId: mockPatient.id })) as OwnedRecord<AppNotification>[],
   // Demo calls are shown until the first successful Telentir sync replaces them.
   callLogs: [...mockCallLogs] as CallLog[],
   // Generated once so booked slots stay booked for the life of the process.
@@ -38,9 +47,6 @@ export const db = {
     mockDoctors.map((d) => [d.id, mockAvailability(d.id)])
   ),
 };
-
-/** The demo has no auth yet, so "me" is always the seeded patient. */
-export const CURRENT_PATIENT_ID = mockPatient.id;
 
 export const newId = (prefix: string) =>
   `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;

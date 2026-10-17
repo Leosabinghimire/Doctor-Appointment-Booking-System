@@ -1,5 +1,6 @@
 import type { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/auth';
+import { queryClient } from '@/lib/queryClient';
 import type { ApiError } from '@/types';
 
 const attachAuthToken = (config: InternalAxiosRequestConfig) => {
@@ -11,8 +12,11 @@ const attachAuthToken = (config: InternalAxiosRequestConfig) => {
 };
 
 const normalizeError = (error: AxiosError<{ message?: string; code?: string }>): Promise<ApiError> => {
-  if (error.response?.status === 401) {
+  // Expired or invalid session: sign out (RequireAuth then redirects to /login).
+  // Skip when not signed in, e.g. a wrong password on the login form.
+  if (error.response?.status === 401 && useAuthStore.getState().isAuthenticated) {
     useAuthStore.getState().logout();
+    queryClient.clear();
   }
   const apiError: ApiError = {
     status: error.response?.status ?? 0,

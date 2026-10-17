@@ -3,7 +3,7 @@ import { Bloodtype, Height, LocalHospital, Person, Scale, Warning } from '@mui/i
 import { motion } from 'framer-motion';
 import { InfoRow, Loader, PageHeader, SectionCard } from '@/components/ui';
 import { useMedicalHistory, usePatient } from '@/hooks/patients';
-import { formatDate, initials } from '@/utils/format';
+import { formatDate, initials, withUnit } from '@/utils/format';
 import { fadeInUp } from '@/lib/animations';
 
 export const MedicalHistory = () => {
@@ -25,14 +25,14 @@ export const MedicalHistory = () => {
             <Box>
               <Typography fontWeight={700}>{patient?.name}</Typography>
               <Typography color="text.secondary" variant="body2">
-                {patient?.age} yrs • {patient?.gender}
+                {[patient?.age !== undefined && `${patient.age} yrs`, patient?.gender].filter(Boolean).join(' • ')}
               </Typography>
             </Box>
           </Stack>
           <Stack spacing={1.2}>
-            <InfoRow icon={<Bloodtype />} label="Blood group" value={patient?.bloodGroup ?? '—'} />
-            <InfoRow icon={<Height />} label="Height" value={`${patient?.height ?? '—'} cm`} />
-            <InfoRow icon={<Scale />} label="Weight" value={`${patient?.weight ?? '—'} kg`} />
+            <InfoRow icon={<Bloodtype />} label="Blood group" value={withUnit(patient?.bloodGroup)} />
+            <InfoRow icon={<Height />} label="Height" value={withUnit(patient?.height, 'cm')} />
+            <InfoRow icon={<Scale />} label="Weight" value={withUnit(patient?.weight, 'kg')} />
             <InfoRow
               icon={<Person />}
               label="Emergency contact"

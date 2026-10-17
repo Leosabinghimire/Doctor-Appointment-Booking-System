@@ -12,7 +12,7 @@ import {
 import type { ReactNode } from 'react';
 import { HelpCard, Loader, PageHeader, SectionCard } from '@/components/ui';
 import { usePatient } from '@/hooks/patients';
-import { initials } from '@/utils/format';
+import { initials, withUnit } from '@/utils/format';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -72,26 +72,26 @@ export const Profile = () => {
 
         <SectionCard title="Personal details">
           <Stack divider={<Divider />} spacing={1}>
-            <DetailRow icon={<Cake fontSize="small" />} label="Age" value={`${patient.age} years`} />
+            <DetailRow icon={<Cake fontSize="small" />} label="Age" value={withUnit(patient.age, 'years')} />
             <DetailRow
               icon={<Wc fontSize="small" />}
               label="Gender"
-              value={capitalize(patient.gender)}
+              value={patient.gender ? capitalize(patient.gender) : 'Not set'}
             />
             <DetailRow
               icon={<Bloodtype fontSize="small" />}
               label="Blood group"
-              value={patient.bloodGroup}
+              value={withUnit(patient.bloodGroup)}
             />
             <DetailRow
               icon={<Height fontSize="small" />}
               label="Height"
-              value={`${patient.height} cm`}
+              value={withUnit(patient.height, 'cm')}
             />
             <DetailRow
               icon={<Scale fontSize="small" />}
               label="Weight"
-              value={`${patient.weight} kg`}
+              value={withUnit(patient.weight, 'kg')}
             />
           </Stack>
         </SectionCard>

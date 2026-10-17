@@ -113,7 +113,7 @@ export const AppointmentCard = ({ appointment, onCancel, onReminderCall, index =
             </Button>
           )}
           {isUpcoming && onReminderCall && (
-            <Tooltip title="Get a phone reminder">
+            <Tooltip title="Call patient with a reminder">
               <IconButton color="primary" onClick={() => onReminderCall(appointment.id)}>
                 <PhoneInTalk />
               </IconButton>

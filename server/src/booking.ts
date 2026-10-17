@@ -1,10 +1,10 @@
 import type { Appointment, BookingPayload } from '../../src/types';
-import { CURRENT_PATIENT_ID, db, newId, samePhone } from './db';
+import { db, newId } from './db';
 import { HttpError } from './http';
 
 const sameDay = (a: string, b: string) => a.slice(0, 10) === b.slice(0, 10);
 
-export const bookAppointment = (payload: BookingPayload): Appointment => {
+export const bookAppointment = (payload: BookingPayload, patientId: string): Appointment => {
   const doctor = db.doctors.find((d) => d.id === payload.doctorId);
   if (!doctor) throw new HttpError(404, 'Doctor not found', 'DOCTOR_NOT_FOUND');
 
@@ -22,14 +22,13 @@ export const bookAppointment = (payload: BookingPayload): Appointment => {
 
   slot.available = false;
 
-  const patient = db.patients.find((p) => samePhone(p.phone, payload.patientPhone));
   const appointment: Appointment = {
     id: newId('a'),
     doctorId: doctor.id,
     doctorName: doctor.name,
     doctorSpecialty: doctor.specialty,
     doctorAvatar: doctor.avatar,
-    patientId: patient?.id ?? CURRENT_PATIENT_ID,
+    patientId,
     patientName: payload.patientName,
     date: day.date,
     time: slot.time,
@@ -43,6 +42,7 @@ export const bookAppointment = (payload: BookingPayload): Appointment => {
 
   db.notifications.unshift({
     id: newId('n'),
+    patientId,
     type: 'appointment',
     title: 'Appointment confirmed',
     message: `${appointment.type === 'video' ? 'Video consult' : 'Visit'} with ${doctor.name} at ${slot.time}.`,

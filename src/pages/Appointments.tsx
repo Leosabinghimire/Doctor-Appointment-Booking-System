@@ -6,6 +6,7 @@ import { ConfirmDialog, EmptyState, Loader, PageHeader } from '@/components/ui';
 import { AppointmentCard } from '@/components/appointment';
 import { useAppointments, useCancelAppointment } from '@/hooks/appointments';
 import { useReminderCall } from '@/hooks/calls';
+import { useIsAdmin } from '@/store/auth';
 import { ROUTES } from '@/constants';
 import type { AppointmentStatus } from '@/types';
 
@@ -21,6 +22,7 @@ export const Appointments = () => {
   const { data: appointments, isLoading } = useAppointments();
   const { mutate: cancelAppointment } = useCancelAppointment();
   const { mutate: requestReminderCall } = useReminderCall();
+  const isAdmin = useIsAdmin();
   const [tab, setTab] = useState(0);
   const [pendingCancel, setPendingCancel] = useState<string | null>(null);
   const [toast, setToast] = useState<{ severity: 'success' | 'error'; message: string } | null>(null);
@@ -51,8 +53,8 @@ export const Appointments = () => {
   return (
     <Box>
       <PageHeader
-        title="My appointments"
-        subtitle="Track and manage your visits."
+        title={isAdmin ? 'All appointments' : 'My appointments'}
+        subtitle={isAdmin ? 'Every booking across the clinic.' : 'Track and manage your visits.'}
         actions={
           <Button variant="contained" startIcon={<CalendarMonth />} onClick={() => navigate(ROUTES.book)}>
             Book new
@@ -83,7 +85,7 @@ export const Appointments = () => {
               key={a.id}
               appointment={a}
               onCancel={(id) => setPendingCancel(id)}
-              onReminderCall={handleReminderCall}
+              onReminderCall={isAdmin ? handleReminderCall : undefined}
               index={i}
             />
           ))}

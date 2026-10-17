@@ -1,5 +1,6 @@
 export const ROUTES = {
   dashboard: '/',
+  login: '/login',
   doctors: '/doctors',
   doctorDetail: (id: string = ':id') => `/doctors/${id}`,
   book: '/book',
