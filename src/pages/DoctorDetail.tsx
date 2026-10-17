@@ -31,33 +31,6 @@ import { formatCurrency } from '@/utils/format';
 import { ROUTES } from '@/constants';
 import { fadeInUp } from '@/lib/animations';
 
-const REVIEWS = [
-  {
-    id: 'r1',
-    name: 'Olivia R.',
-    avatar: 'https://i.pravatar.cc/100?img=20',
-    rating: 5,
-    date: '2 weeks ago',
-    comment: 'Truly attentive and thorough. Took the time to walk me through my report calmly.',
-  },
-  {
-    id: 'r2',
-    name: 'David L.',
-    avatar: 'https://i.pravatar.cc/100?img=11',
-    rating: 5,
-    date: '1 month ago',
-    comment: 'Very professional. Got a same-day video consult and clear next steps.',
-  },
-  {
-    id: 'r3',
-    name: 'Maya K.',
-    avatar: 'https://i.pravatar.cc/100?img=32',
-    rating: 4,
-    date: '2 months ago',
-    comment: 'Wait time was a bit long but the consultation was worth it.',
-  },
-];
-
 export const DoctorDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -130,7 +103,7 @@ export const DoctorDetail = () => {
               {doctor.inPersonConsult && (
                 <Chip
                   icon={<LocalHospital sx={{ fontSize: 14 }} />}
-                  label={`In-person • ${formatCurrency(doctor.consultationFee + 20)}`}
+                  label={`In-person • ${formatCurrency(doctor.consultationFee)}`}
                   color="primary"
                   variant="outlined"
                 />
@@ -169,7 +142,6 @@ export const DoctorDetail = () => {
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         <Tab label="About" />
-        <Tab label="Reviews" />
         <Tab label="Availability" />
       </Tabs>
 
@@ -206,32 +178,6 @@ export const DoctorDetail = () => {
       )}
 
       {tab === 1 && (
-        <SectionCard title={`${REVIEWS.length} patient reviews`} subtitle={`Average ${doctor.rating.toFixed(1)} out of 5`}>
-          <Stack spacing={2}>
-            {REVIEWS.map((r) => (
-              <Box key={r.id} sx={{ p: 2, borderRadius: 2, border: (t) => `1px solid ${t.palette.divider}` }}>
-                <Stack direction="row" spacing={2} alignItems="flex-start">
-                  <Avatar src={r.avatar} />
-                  <Box flex={1}>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography fontWeight={700}>{r.name}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {r.date}
-                      </Typography>
-                    </Stack>
-                    <Rating value={r.rating} readOnly size="small" />
-                    <Typography sx={{ mt: 0.5 }} color="text.secondary">
-                      {r.comment}
-                    </Typography>
-                  </Box>
-                </Stack>
-              </Box>
-            ))}
-          </Stack>
-        </SectionCard>
-      )}
-
-      {tab === 2 && (
         <SectionCard title="Schedule" subtitle="Click below to start booking">
           <Stack spacing={2} alignItems="flex-start">
             <Stack direction="row" spacing={1}>
