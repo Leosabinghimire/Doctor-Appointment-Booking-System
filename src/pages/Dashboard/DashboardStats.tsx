@@ -1,13 +1,20 @@
 import { Box } from '@mui/material';
-import { CalendarMonth, Medication, MonitorHeart, Speed } from '@mui/icons-material';
+import { CalendarMonth, EventAvailable, Medication, NotificationsActive } from '@mui/icons-material';
 import { StatCard } from '@/components/ui';
 
 interface DashboardStatsProps {
   upcomingCount: number;
   activePrescriptionCount: number;
+  completedCount: number;
+  unreadCount: number;
 }
 
-export const DashboardStats = ({ upcomingCount, activePrescriptionCount }: DashboardStatsProps) => (
+export const DashboardStats = ({
+  upcomingCount,
+  activePrescriptionCount,
+  completedCount,
+  unreadCount,
+}: DashboardStatsProps) => (
   <Box
     sx={{
       display: 'grid',
@@ -23,7 +30,7 @@ export const DashboardStats = ({ upcomingCount, activePrescriptionCount }: Dashb
       icon={<Medication />}
       helper="prescriptions"
     />
-    <StatCard label="Heart rate" value="74" icon={<MonitorHeart />} delta={-3} helper="vs last week" />
-    <StatCard label="Activity" value="6.2k" icon={<Speed />} delta={12} helper="avg daily steps" />
+    <StatCard label="Completed" value={completedCount} icon={<EventAvailable />} helper="past visits" />
+    <StatCard label="Unread" value={unreadCount} icon={<NotificationsActive />} helper="notifications" />
   </Box>
 );

@@ -1,15 +1,16 @@
-import { Avatar, Box, Card, Chip, Divider, LinearProgress, Stack, Typography, alpha } from '@mui/material';
+import { Avatar, Box, Card, Chip, Divider, Stack, Typography, alpha } from '@mui/material';
 import { motion } from 'framer-motion';
-import type { Patient } from '@/types';
-import { initials } from '@/utils/format';
+import type { Appointment, Patient } from '@/types';
+import { formatDate, initials } from '@/utils/format';
 import { fadeInUp } from '@/lib/animations';
 
 interface PatientHeroCardProps {
   patient: Patient;
-  healthScore?: number;
+  /** The soonest upcoming appointment, if any. */
+  nextAppointment?: Appointment;
 }
 
-export const PatientHeroCard = ({ patient, healthScore = 86 }: PatientHeroCardProps) => (
+export const PatientHeroCard = ({ patient, nextAppointment }: PatientHeroCardProps) => (
   <Card
     component={motion.div}
     variants={fadeInUp}
@@ -75,30 +76,22 @@ export const PatientHeroCard = ({ patient, healthScore = 86 }: PatientHeroCardPr
           textTransform="uppercase"
           letterSpacing={0.5}
         >
-          Health score
+          Next appointment
         </Typography>
-        <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 0.5 }}>
-          <Typography variant="h3" fontWeight={800} color="primary.main" sx={{ lineHeight: 1 }}>
-            {healthScore}
+        {nextAppointment ? (
+          <>
+            <Typography variant="h6" fontWeight={800} color="primary.main" sx={{ mt: 0.5 }}>
+              {formatDate(nextAppointment.date, 'EEE, MMM d')} • {nextAppointment.time}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {nextAppointment.doctorName} • {nextAppointment.type === 'video' ? 'Video consult' : 'In-person'}
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            No upcoming visits. Book one when you need it.
           </Typography>
-          <Typography color="text.secondary" fontWeight={600}>
-            / 100
-          </Typography>
-        </Stack>
-        <LinearProgress
-          variant="determinate"
-          value={healthScore}
-          sx={{
-            mt: 1.2,
-            height: 6,
-            borderRadius: 4,
-            bgcolor: (t) => alpha(t.palette.primary.main, 0.1),
-            '& .MuiLinearProgress-bar': { borderRadius: 4 },
-          }}
-        />
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-          You're on track. Keep up your morning walks and balanced meals.
-        </Typography>
+        )}
       </Box>
     </Stack>
   </Card>

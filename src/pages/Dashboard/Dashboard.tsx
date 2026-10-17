@@ -9,8 +9,6 @@ import { useNotifications } from '@/hooks/notifications';
 import { ROUTES } from '@/constants';
 import { PatientHeroCard } from './PatientHeroCard';
 import { DashboardStats } from './DashboardStats';
-import { HeartRateCard } from './HeartRateCard';
-import { VitalsCard } from './VitalsCard';
 import { UpcomingAppointmentsCard } from './UpcomingAppointmentsCard';
 import { RecentActivityCard } from './RecentActivityCard';
 
@@ -24,6 +22,8 @@ export const Dashboard = () => {
   if (isLoading || !patient) return <Loader label="Preparing your dashboard..." />;
 
   const upcoming = appointments?.filter((a) => a.status === 'upcoming') ?? [];
+  const completed = appointments?.filter((a) => a.status === 'completed').length ?? 0;
+  const unread = notifications?.filter((n) => !n.read).length ?? 0;
   const activePrescriptions = prescriptions?.filter((p) => p.status === 'active').length ?? 0;
 
   return (
@@ -43,14 +43,14 @@ export const Dashboard = () => {
         }
       />
 
-      <PatientHeroCard patient={patient} />
+      <PatientHeroCard patient={patient} nextAppointment={upcoming[0]} />
 
-      <DashboardStats upcomingCount={upcoming.length} activePrescriptionCount={activePrescriptions} />
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' }, gap: 2.5, mb: 3 }}>
-        <HeartRateCard />
-        <VitalsCard />
-      </Box>
+      <DashboardStats
+        upcomingCount={upcoming.length}
+        activePrescriptionCount={activePrescriptions}
+        completedCount={completed}
+        unreadCount={unread}
+      />
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.5fr 1fr' }, gap: 2.5 }}>
         <UpcomingAppointmentsCard appointments={upcoming} />

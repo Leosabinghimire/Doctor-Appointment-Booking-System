@@ -50,7 +50,7 @@ export const ConfirmStep = ({ doctor, selectedDate, selectedSlot, type, reason }
         <Typography>{reason}</Typography>
       </Box>
       <Alert severity="info">
-        You'll receive a confirmation by email and SMS. Cancellation up to 4 hours before is free.
+        You'll see a confirmation in your Notifications. You can cancel any time before the visit from the Appointments page.
       </Alert>
     </Stack>
   </Box>
