@@ -13,7 +13,7 @@ const INITIAL_FILTERS: Filters = {
   availableToday: false,
   videoOnly: false,
   minRating: 0,
-  maxFee: 200,
+  maxFee: undefined,
   sortBy: 'rating',
 };
 
@@ -22,6 +22,16 @@ export const Doctors = () => {
   const debouncedSearch = useDebounce(filters.search, 350);
   const queryFilters = useMemo(() => ({ ...filters, search: debouncedSearch }), [filters, debouncedSearch]);
   const { data: doctors, isLoading } = useDoctors(queryFilters);
+  // Unfiltered list, for the filter options themselves.
+  const { data: allDoctors } = useDoctors();
+  const cities = useMemo(
+    () => [...new Set((allDoctors ?? []).map((d) => d.city))].sort((a, b) => a.localeCompare(b)),
+    [allDoctors]
+  );
+  const feeCeiling = useMemo(
+    () => Math.max(10, Math.ceil(Math.max(0, ...(allDoctors ?? []).map((d) => d.consultationFee)) / 10) * 10),
+    [allDoctors]
+  );
 
   return (
     <Box>
@@ -29,7 +39,7 @@ export const Doctors = () => {
         title="Find your specialist"
         subtitle="Browse trusted, board-certified doctors and book in seconds."
       />
-      <DoctorFilters filters={filters} onChange={setFilters} />
+      <DoctorFilters filters={filters} onChange={setFilters} cities={cities} feeCeiling={feeCeiling} />
 
       {isLoading ? (
         <SkeletonCards count={6} />

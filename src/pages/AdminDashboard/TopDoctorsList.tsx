@@ -1,5 +1,5 @@
 import { Avatar, Box, Stack, Typography, alpha } from '@mui/material';
-import { SectionCard } from '@/components/ui';
+import { EmptyState, SectionCard } from '@/components/ui';
 import type { Doctor } from '@/types';
 
 interface TopDoctorsListProps {
@@ -7,9 +7,12 @@ interface TopDoctorsListProps {
 }
 
 export const TopDoctorsList = ({ doctors }: TopDoctorsListProps) => {
-  const sorted = [...doctors].sort((a, b) => b.rating - a.rating).slice(0, 5);
+  const sorted = doctors.filter((d) => d.reviewCount > 0).sort((a, b) => b.rating - a.rating).slice(0, 5);
   return (
     <SectionCard title="Top performing doctors" subtitle="By rating">
+      {sorted.length === 0 && (
+        <EmptyState title="No ratings yet" description="Doctors appear here once patients have rated them." />
+      )}
       <Stack spacing={1.5}>
         {sorted.map((d, i) => (
           <Stack

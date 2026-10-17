@@ -12,7 +12,7 @@ import { Videocam, LocationOn, Verified, AccessTime } from '@mui/icons-material'
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import type { Doctor } from '@/types';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, initials } from '@/utils/format';
 import { ROUTES } from '@/constants';
 
 interface Props {
@@ -40,7 +40,9 @@ export const DoctorCard = ({ doctor, index = 0 }: Props) => {
     >
       <Stack direction="row" spacing={2} alignItems="flex-start">
         <Box sx={{ position: 'relative' }}>
-          <Avatar src={doctor.avatar} sx={{ width: 64, height: 64 }} />
+          <Avatar src={doctor.avatar || undefined} sx={{ width: 64, height: 64 }}>
+            {initials(doctor.name)}
+          </Avatar>
           {doctor.availableToday && (
             <Box
               sx={{
@@ -66,12 +68,16 @@ export const DoctorCard = ({ doctor, index = 0 }: Props) => {
           <Typography color="text.secondary" variant="body2">
             {doctor.specialty} • {doctor.qualifications}
           </Typography>
-          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
-            <Rating value={doctor.rating} precision={0.1} size="small" readOnly />
-            <Typography variant="caption" color="text.secondary">
-              {doctor.rating.toFixed(1)} ({doctor.reviewCount})
-            </Typography>
-          </Stack>
+          {doctor.reviewCount > 0 ? (
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+              <Rating value={doctor.rating} precision={0.1} size="small" readOnly />
+              <Typography variant="caption" color="text.secondary">
+                {doctor.rating.toFixed(1)} ({doctor.reviewCount})
+              </Typography>
+            </Stack>
+          ) : (
+            <Chip label="New" size="small" color="primary" variant="outlined" sx={{ mt: 0.5, height: 20 }} />
+          )}
         </Box>
       </Stack>
 

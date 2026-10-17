@@ -27,7 +27,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Loader, SectionCard } from '@/components/ui';
 import { useDoctor } from '@/hooks/doctors';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, initials } from '@/utils/format';
 import { ROUTES } from '@/constants';
 import { fadeInUp } from '@/lib/animations';
 
@@ -62,7 +62,9 @@ export const DoctorDetail = () => {
           }}
         />
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} sx={{ position: 'relative' }}>
-          <Avatar src={doctor.avatar} sx={{ width: 120, height: 120 }} />
+          <Avatar src={doctor.avatar || undefined} sx={{ width: 120, height: 120, fontSize: 40 }}>
+            {initials(doctor.name)}
+          </Avatar>
           <Box flex={1}>
             <Stack direction="row" spacing={1} alignItems="center">
               <Typography variant="h4" fontWeight={800}>
@@ -74,15 +76,19 @@ export const DoctorDetail = () => {
               {doctor.specialty} • {doctor.qualifications}
             </Typography>
             <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1.5 }} flexWrap="wrap" rowGap={1}>
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <Rating value={doctor.rating} precision={0.1} readOnly size="small" />
-                <Typography fontWeight={700} fontSize={14}>
-                  {doctor.rating.toFixed(1)}
-                </Typography>
-                <Typography color="text.secondary" variant="caption">
-                  ({doctor.reviewCount} reviews)
-                </Typography>
-              </Stack>
+              {doctor.reviewCount > 0 ? (
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Rating value={doctor.rating} precision={0.1} readOnly size="small" />
+                  <Typography fontWeight={700} fontSize={14}>
+                    {doctor.rating.toFixed(1)}
+                  </Typography>
+                  <Typography color="text.secondary" variant="caption">
+                    ({doctor.reviewCount} reviews)
+                  </Typography>
+                </Stack>
+              ) : (
+                <Chip label="New" size="small" color="primary" variant="outlined" />
+              )}
               <Chip icon={<AccessTime sx={{ fontSize: 14 }} />} label={`${doctor.experience} years exp`} size="small" />
               <Chip
                 icon={<LocationOn sx={{ fontSize: 14 }} />}

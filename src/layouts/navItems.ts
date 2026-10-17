@@ -9,6 +9,7 @@ import {
   AdminPanelSettings,
   EventAvailable,
   PhoneInTalk,
+  MedicalServices,
 } from '@mui/icons-material';
 import type { ComponentType } from 'react';
 import { ROUTES } from '@/constants';
@@ -34,5 +35,6 @@ export const primaryNav: readonly NavItem[] = [
   { label: 'Video Consult', to: ROUTES.video, icon: Videocam, group: 'Health', roles: ['patient'] },
   { label: 'Notifications', to: ROUTES.notifications, icon: Notifications, group: 'Health', roles: ['patient'] },
   { label: 'Admin Panel', to: ROUTES.admin, icon: AdminPanelSettings, group: 'Manage', roles: ['admin'] },
+  { label: 'Manage Doctors', to: ROUTES.manageDoctors, icon: MedicalServices, group: 'Manage', roles: ['admin'] },
   { label: 'Call Logs', to: ROUTES.calls, icon: PhoneInTalk, group: 'Manage', roles: ['admin'] },
 ] as const;

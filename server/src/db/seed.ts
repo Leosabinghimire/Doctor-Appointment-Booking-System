@@ -20,13 +20,17 @@ import { sql } from './connection';
 
 /**
  * Fills an empty database. Safe to run on every start — each part only runs once.
- * - Always: the doctor catalog (there's no UI to manage doctors yet) and the admin account.
- * - Development only: the demo patient with sample appointments, prescriptions and calls.
+ * - Always: the admin account.
+ * - Development only: sample doctors, and the demo patient with sample appointments,
+ *   prescriptions and calls. Production starts with no doctors — add real ones in Manage Doctors.
  */
 export const seedDatabase = async () => {
-  if (doctorsRepo.count() === 0) {
+  const demoPassword = config.auth.demoPatientPassword; // set only outside production
+  const isDev = Boolean(demoPassword);
+
+  if (isDev && doctorsRepo.countAll() === 0) {
     sql.transaction(() => mockDoctors.forEach(doctorsRepo.insert))();
-    console.log(`[db] seeded ${mockDoctors.length} doctors`);
+    console.log(`[db] seeded ${mockDoctors.length} sample doctors`);
   }
 
   if (!usersRepo.findByEmail(config.auth.adminEmail)) {
@@ -40,8 +44,8 @@ export const seedDatabase = async () => {
     console.log(`[db] created admin account ${config.auth.adminEmail}`);
   }
 
-  if (config.auth.demoPatientPassword && !patientsRepo.get(mockPatient.id)) {
-    const passwordHash = await hashPassword(config.auth.demoPatientPassword);
+  if (demoPassword && !patientsRepo.get(mockPatient.id)) {
+    const passwordHash = await hashPassword(demoPassword);
     sql.transaction(() => {
       patientsRepo.insert(mockPatient);
       usersRepo.insert({

@@ -9,6 +9,7 @@ import {
   DoctorDetail,
   Doctors,
   Login,
+  ManageDoctors,
   MedicalHistory,
   NotFound,
   NotificationsPage,
@@ -45,6 +46,7 @@ export const AppRoutes = () => (
         {/* Admins */}
         <Route element={<RequireRole roles={['admin']} />}>
           <Route path={ROUTES.admin} element={<AdminDashboard />} />
+          <Route path={ROUTES.manageDoctors} element={<ManageDoctors />} />
           <Route path={ROUTES.calls} element={<CallLogs />} />
         </Route>
 

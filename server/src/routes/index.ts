@@ -8,6 +8,7 @@ import { doctorsRepo } from '../repos/doctors';
 import { patientsRepo } from '../repos/patients';
 import { medicalRecordsRepo, notificationsRepo, prescriptionsRepo } from '../repos/records';
 import { computeAdminStats } from '../repos/stats';
+import { parseDoctorInput } from '../doctorInput';
 import { HttpError, asyncHandler } from '../http';
 import { isTelentirEnabled } from '../telentir/client';
 import { getCallLogs, syncCalls } from '../telentir/calls';
@@ -183,6 +184,27 @@ api.post('/notifications/:id/read', (req, res) => {
 
 api.get('/admin/stats', requireRole('admin'), (_req, res) => {
   res.json(computeAdminStats());
+});
+
+// ---- Doctor management ----
+api.get('/admin/doctors', requireRole('admin'), (_req, res) => {
+  res.json(doctorsRepo.adminList());
+});
+api.post('/admin/doctors', requireRole('admin'), (req, res) => {
+  const id = doctorsRepo.create(parseDoctorInput(req.body));
+  res.status(201).json(doctorsRepo.adminList().find((d) => d.id === id));
+});
+api.put('/admin/doctors/:id', requireRole('admin'), (req, res) => {
+  const input = parseDoctorInput(req.body);
+  if (!doctorsRepo.update(req.params.id, input)) throw new HttpError(404, 'Doctor not found', 'NOT_FOUND');
+  res.json(doctorsRepo.adminList().find((d) => d.id === req.params.id));
+});
+// Archive / restore. Archived doctors are hidden from patients; their existing appointments are kept.
+api.patch('/admin/doctors/:id/status', requireRole('admin'), (req, res) => {
+  const { active } = (req.body ?? {}) as { active?: unknown };
+  if (typeof active !== 'boolean') throw new HttpError(400, '`active` must be true or false', 'VALIDATION');
+  if (!doctorsRepo.setActive(req.params.id, active)) throw new HttpError(404, 'Doctor not found', 'NOT_FOUND');
+  res.json(doctorsRepo.adminList().find((d) => d.id === req.params.id));
 });
 
 // Telentir actions cost money (phone minutes), so only admins can trigger them.

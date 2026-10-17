@@ -302,7 +302,7 @@ Hooks ([useDoctors](src/hooks/doctors/useDoctors.ts), [useAppointments](src/hook
 - **File:** `server/data/medicare.db` (created on first start; change with `DATABASE_PATH`). It's git-ignored — **back this file up**; it holds all patient data.
 - **Schema:** [server/src/db/migrations.ts](server/src/db/migrations.ts). Migrations run automatically on start and are tracked with SQLite's `user_version`. To change the schema, append a new migration — never edit a shipped one.
 - **Data access:** one repository per area in [server/src/repos/](server/src/repos/). Routes never write SQL directly.
-- **Seed data:** on an empty database the server adds the doctor catalog and the admin account. In development it also adds the demo patient (Alex Morgan) with sample appointments, prescriptions and calls. Production gets no demo data.
+- **Seed data:** on an empty database the server creates the admin account. In development it also adds 10 sample doctors and the demo patient (Alex Morgan) with sample appointments, prescriptions and calls. **Production starts with no doctors** — add your clinic's doctors under **Manage Doctors**.
 - **Double booking** is blocked by a unique index in the database (`409 SLOT_TAKEN`), so it holds even under simultaneous requests.
 - **Availability** is computed from the clinic schedule (09:00–17:00, Monday–Saturday, next 7 days) minus booked appointments and past times.
 - **Admin dashboard numbers** are computed live from the database.
@@ -342,6 +342,15 @@ Every page except `/login` requires signing in. The backend checks every request
 
 In development a random JWT secret is generated once and kept in `server/data/.dev-jwt-secret`, so sign-ins survive restarts. In production, set `JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `server/.env` — the server refuses to start without them. The admin account is created only once; changing `ADMIN_PASSWORD` later does not change an existing admin's password.
 
+## Managing doctors
+
+Admins add, edit, archive and restore doctors at `/manage-doctors`.
+
+- **Archive instead of delete:** archived doctors disappear from patient search and booking, but their past and already-booked appointments are kept. The archive dialog warns how many upcoming visits the doctor still has.
+- **Validated on the server:** required fields, a specialty from the list, sensible experience and fee ranges, at least one visit type, and photo links must be `https://` addresses. Every problem is reported at once.
+- **Nothing is typed in by hand that should be computed:** "Next available" and "Available today" come from the real schedule. New doctors show **New** instead of a star rating (there's no review system yet).
+- The Find Doctors city list and fee slider are built from the actual doctors, so a doctor in a new city or with a higher fee is never hidden.
+
 ## Telentir AI voice agent
 
 The backend integrates [Telentir](https://docs.telentir.com) via its official SDK (`@silyze/telentir-sdk`). The API key stays on the server; the browser only talks to our REST API.
@@ -377,6 +386,7 @@ Setup:
 | `/video` / `/video/:appointmentId` | Video Consultation |
 | `/notifications` | Notifications |
 | `/admin` | Admin Dashboard |
+| `/manage-doctors` | Manage Doctors (admin) |
 | `/calls` | Call Logs (Telentir) |
 
 ## Design Notes

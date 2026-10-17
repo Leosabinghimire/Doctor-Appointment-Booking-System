@@ -29,7 +29,33 @@ export interface Doctor {
   availableToday: boolean;
   videoConsult: boolean;
   inPersonConsult: boolean;
+  /** Next open slot, e.g. "Today, 10:30 AM". Computed by the backend from the schedule. */
   nextSlot: string;
+  /** False when archived by an admin — hidden from patients, kept for past appointments. */
+  active?: boolean;
+}
+
+/** The fields an admin can edit. Ratings and availability are never typed in by hand. */
+export type DoctorInput = Pick<
+  Doctor,
+  | 'name'
+  | 'specialty'
+  | 'qualifications'
+  | 'experience'
+  | 'consultationFee'
+  | 'hospital'
+  | 'city'
+  | 'avatar'
+  | 'about'
+  | 'languages'
+  | 'videoConsult'
+  | 'inPersonConsult'
+>;
+
+/** Admin list row: the doctor plus how many upcoming visits they have. */
+export interface AdminDoctor extends Doctor {
+  active: boolean;
+  upcomingAppointments: number;
 }
 
 export interface TimeSlot {

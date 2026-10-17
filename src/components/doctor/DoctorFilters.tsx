@@ -12,12 +12,16 @@ import {
   Typography,
 } from '@mui/material';
 import { Search, FilterAltOff } from '@mui/icons-material';
-import { SPECIALTIES, CITIES } from '@/constants';
+import { SPECIALTIES } from '@/constants';
 import type { DoctorFilters as Filters } from '@/types';
 
 interface Props {
   filters: Filters;
   onChange: (next: Filters) => void;
+  /** Cities that actually have doctors. */
+  cities: string[];
+  /** Highest fee among all doctors — the top of the fee slider ("Any"). */
+  feeCeiling: number;
 }
 
 const sortOptions = [
@@ -26,7 +30,7 @@ const sortOptions = [
   { value: 'fee', label: 'Lowest fee' },
 ];
 
-export const DoctorFilters = ({ filters, onChange }: Props) => {
+export const DoctorFilters = ({ filters, onChange, cities, feeCeiling }: Props) => {
   const update = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value });
 
@@ -38,9 +42,11 @@ export const DoctorFilters = ({ filters, onChange }: Props) => {
       availableToday: false,
       videoOnly: false,
       minRating: 0,
-      maxFee: 200,
+      maxFee: undefined,
       sortBy: 'rating',
     });
+
+  const feeIsAny = filters.maxFee === undefined || filters.maxFee >= feeCeiling;
 
   return (
     <Box
@@ -89,7 +95,7 @@ export const DoctorFilters = ({ filters, onChange }: Props) => {
           sx={{ minWidth: 160 }}
         >
           <MenuItem value="">All cities</MenuItem>
-          {CITIES.map((c) => (
+          {cities.map((c) => (
             <MenuItem key={c} value={c}>
               {c}
             </MenuItem>
@@ -148,14 +154,15 @@ export const DoctorFilters = ({ filters, onChange }: Props) => {
         </Box>
         <Box sx={{ minWidth: 200 }}>
           <Typography variant="caption" color="text.secondary">
-            Max fee: ${filters.maxFee ?? 200}
+            Max fee: {feeIsAny ? 'Any' : `$${filters.maxFee}`}
           </Typography>
           <Slider
-            value={filters.maxFee ?? 200}
-            min={20}
-            max={300}
+            value={feeIsAny ? feeCeiling : filters.maxFee}
+            min={0}
+            max={feeCeiling}
             step={10}
-            onChange={(_, v) => update('maxFee', v as number)}
+            // At the top of the range, remove the limit so no doctor is hidden.
+            onChange={(_, v) => update('maxFee', (v as number) >= feeCeiling ? undefined : (v as number))}
           />
         </Box>
         <Button

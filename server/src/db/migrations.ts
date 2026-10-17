@@ -108,6 +108,11 @@ const MIGRATIONS: string[] = [
     placed_at      INTEGER NOT NULL
   );
   `,
+
+  // 2 — doctors can be archived instead of deleted (past appointments still reference them)
+  `
+  ALTER TABLE doctors ADD COLUMN active INTEGER NOT NULL DEFAULT 1;
+  `,
 ];
 
 export const migrate = (db: Database.Database) => {

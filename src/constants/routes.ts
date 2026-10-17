@@ -14,6 +14,7 @@ export const ROUTES = {
   profile: '/profile',
   admin: '/admin',
   calls: '/calls',
+  manageDoctors: '/manage-doctors',
   notFound: '/404',
 } as const;
 
