@@ -10,3 +10,4 @@ dist-ssr
 .DS_Store
 *.log
 .playwright-mcp
+server/data

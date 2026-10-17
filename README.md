@@ -295,7 +295,18 @@ Hooks ([useDoctors](src/hooks/doctors/useDoctors.ts), [useAppointments](src/hook
 
 ## Backend server
 
-[server/](server/) is a Node.js + TypeScript (Express) REST API implementing every endpoint in [src/api/endpoints/](src/api/endpoints/). Data lives in memory, seeded from [src/data/mock.ts](src/data/mock.ts), and resets on restart — swap [server/src/db.ts](server/src/db.ts) for a real database when ready. Booking goes through a single path that rejects double-booked slots (`409 SLOT_TAKEN`).
+[server/](server/) is a Node.js + TypeScript (Express) REST API implementing every endpoint in [src/api/endpoints/](src/api/endpoints/), backed by a **SQLite** database.
+
+### Database
+
+- **File:** `server/data/medicare.db` (created on first start; change with `DATABASE_PATH`). It's git-ignored — **back this file up**; it holds all patient data.
+- **Schema:** [server/src/db/migrations.ts](server/src/db/migrations.ts). Migrations run automatically on start and are tracked with SQLite's `user_version`. To change the schema, append a new migration — never edit a shipped one.
+- **Data access:** one repository per area in [server/src/repos/](server/src/repos/). Routes never write SQL directly.
+- **Seed data:** on an empty database the server adds the doctor catalog and the admin account. In development it also adds the demo patient (Alex Morgan) with sample appointments, prescriptions and calls. Production gets no demo data.
+- **Double booking** is blocked by a unique index in the database (`409 SLOT_TAKEN`), so it holds even under simultaneous requests.
+- **Availability** is computed from the clinic schedule (09:00–17:00, Monday–Saturday, next 7 days) minus booked appointments and past times.
+- **Admin dashboard numbers** are computed live from the database.
+- **Start fresh:** stop the server and delete the `server/data` folder.
 
 ```bash
 npm run server:install     # once
@@ -329,7 +340,7 @@ Every page except `/login` requires signing in. The backend checks every request
 | `alex.morgan@example.com` | `patient-dev-password` | Patient |
 | `admin@medicare.example` | `admin-dev-password` | Admin |
 
-In development the JWT secret is random per server start, so restarting the backend signs everyone out (the in-memory data resets too). In production, set `JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `server/.env` — the server refuses to start without them.
+In development a random JWT secret is generated once and kept in `server/data/.dev-jwt-secret`, so sign-ins survive restarts. In production, set `JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `server/.env` — the server refuses to start without them. The admin account is created only once; changing `ADMIN_PASSWORD` later does not change an existing admin's password.
 
 ## Telentir AI voice agent
 

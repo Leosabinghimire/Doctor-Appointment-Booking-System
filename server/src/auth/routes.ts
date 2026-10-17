@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import type { AuthResponse, LoginPayload, Patient, RegisterPayload } from '../../../src/types';
-import { db, newId, samePhone } from '../db';
+import { isUniqueViolation, sql } from '../db/connection';
+import { patientsRepo } from '../repos/patients';
+import { normalizeEmail, usersRepo, type UserRecord } from '../repos/users';
+import { newId } from '../util';
 import { HttpError, asyncHandler } from '../http';
 import { currentUser, requireAuth } from './middleware';
 import { hashPassword, verifyPassword } from './passwords';
 import { assertNotLockedOut, clearFailures, recordFailure } from './rateLimit';
 import { signToken } from './tokens';
-import { findUserByEmail, normalizeEmail, toAuthUser, users, type UserRecord } from './users';
+import { toAuthUser } from './users';
 
 export const authRoutes = Router();
 
@@ -32,7 +35,7 @@ authRoutes.post(
     const key = `${normalizeEmail(email)}|${req.ip}`;
     assertNotLockedOut(key);
 
-    const user = findUserByEmail(email);
+    const user = usersRepo.findByEmail(email);
     const ok = await verifyPassword(password, user?.passwordHash ?? (await DUMMY_HASH));
     if (!user || !ok) {
       recordFailure(key);
@@ -55,10 +58,10 @@ authRoutes.post(
     if (password.length < MIN_PASSWORD_LENGTH) {
       throw new HttpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`, 'VALIDATION');
     }
-    if (findUserByEmail(email)) {
+    if (usersRepo.findByEmail(email)) {
       throw new HttpError(409, 'An account with this email already exists', 'EMAIL_TAKEN');
     }
-    if (db.patients.some((p) => samePhone(p.phone, phone))) {
+    if (patientsRepo.findByPhone(phone)) {
       throw new HttpError(409, 'An account with this phone number already exists', 'PHONE_TAKEN');
     }
 
@@ -73,9 +76,8 @@ authRoutes.post(
       chronicConditions: [],
       emergencyContact: { name: '', relation: '', phone: '' },
     };
-    db.patients.push(patient);
 
-    const user: UserRecord = {
+    const user: Omit<UserRecord, 'createdAt'> = {
       id: newId('u'),
       email: patient.email,
       name: patient.name,
@@ -83,9 +85,18 @@ authRoutes.post(
       patientId: patient.id,
       passwordHash: await hashPassword(password),
     };
-    users.push(user);
+    try {
+      sql.transaction(() => {
+        patientsRepo.insert(patient);
+        usersRepo.insert(user);
+      })();
+    } catch (err) {
+      // Lost a race with a simultaneous sign-up using the same email or phone.
+      if (isUniqueViolation(err)) throw new HttpError(409, 'An account with this email or phone already exists', 'ACCOUNT_EXISTS');
+      throw err;
+    }
 
-    res.status(201).json(await respond(user));
+    res.status(201).json(await respond(usersRepo.findById(user.id)!));
   })
 );
 

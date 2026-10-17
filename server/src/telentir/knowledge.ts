@@ -1,7 +1,8 @@
-import { db } from '../db';
+import { doctorsRepo } from '../repos/doctors';
 
-export const formatAppointmentDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+/** "2026-10-18" → "Sunday, October 18". Parsed at local noon so the day can't shift across time zones. */
+export const formatAppointmentDate = (day: string) =>
+  new Date(`${day.slice(0, 10)}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
 /**
  * Plain-text clinic directory for the Telentir knowledge base, so an inbound
@@ -9,7 +10,8 @@ export const formatAppointmentDate = (iso: string) =>
  * Contains no patient information.
  */
 export const buildClinicKnowledge = (): string => {
-  const doctors = db.doctors
+  const doctors = doctorsRepo
+    .all()
     .map((d) =>
       [
         `${d.name} — ${d.specialty}`,

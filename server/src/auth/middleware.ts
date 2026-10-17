@@ -2,7 +2,7 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import type { UserRole } from '../../../src/types';
 import { HttpError } from '../http';
 import { verifyToken } from './tokens';
-import { findUserById, type UserRecord } from './users';
+import { usersRepo, type UserRecord } from '../repos/users';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -18,7 +18,7 @@ export const requireAuth: RequestHandler = (req: Request, _res: Response, next: 
 
   verifyToken(token)
     .then((claims) => {
-      const user = claims && findUserById(claims.sub);
+      const user = claims && usersRepo.findById(claims.sub);
       if (!user) return next(new HttpError(401, 'Your session has expired. Please sign in again.', 'UNAUTHENTICATED'));
       req.user = user;
       next();

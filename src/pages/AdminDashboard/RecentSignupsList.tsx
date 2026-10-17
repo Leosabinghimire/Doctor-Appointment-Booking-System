@@ -8,7 +8,7 @@ interface RecentSignupsListProps {
 }
 
 export const RecentSignupsList = ({ users }: RecentSignupsListProps) => (
-  <SectionCard title="Recent sign-ups" subtitle="Last 3 days">
+  <SectionCard title="Recent sign-ups" subtitle="Newest patients">
     <Stack spacing={1.5}>
       {users.map((u) => (
         <Stack

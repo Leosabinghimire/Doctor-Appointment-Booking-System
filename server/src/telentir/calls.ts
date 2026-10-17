@@ -1,8 +1,8 @@
 import type { CallLog, TranscriptLine } from '../../../src/types';
 import { config } from '../config';
-import { db, samePhone } from '../db';
+import { sql } from '../db/connection';
+import { callLogsRepo, reminderCallsRepo } from '../repos/calls';
 import { getTelentir, isTelentirEnabled } from './client';
-import { pendingReminders } from './reminders';
 
 let lastSyncedAt: string | undefined;
 
@@ -50,14 +50,6 @@ const normalizeTranscript = (raw: unknown): TranscriptLine[] => {
     .filter((t): t is TranscriptLine => Boolean(t));
 };
 
-/** Links an outbound call to the appointment we placed a reminder for. */
-const matchReminder = (phone: string, startedAt: string) => {
-  const started = new Date(startedAt).getTime();
-  return pendingReminders.find(
-    (r) => samePhone(r.phone, phone) && started >= r.placedAt - 60_000 && started <= r.placedAt + 15 * 60_000
-  )?.appointmentId;
-};
-
 export const syncCalls = async (): Promise<CallLog[]> => {
   const telentir = await getTelentir();
   const calls = await telentir.calls.all();
@@ -67,7 +59,7 @@ export const syncCalls = async (): Promise<CallLog[]> => {
       const startedAt = iso(call.startDate)!;
       const endedAt = iso(call.endDate);
       const talkStart = iso(call.conversationStartDate) ?? startedAt;
-      const existing = db.callLogs.find((c) => c.externalCallId === call.id);
+      const existing = callLogsRepo.getByExternalId(call.id);
 
       // Transcripts are encrypted objects; fetch each once and keep it.
       let transcript = existing?.transcript ?? [];
@@ -97,19 +89,21 @@ export const syncCalls = async (): Promise<CallLog[]> => {
         transcript,
         appointmentId:
           existing?.appointmentId ??
-          (call.direction === 'outbound' ? matchReminder(call.contact?.phone ?? '', startedAt) : undefined),
+          (call.direction === 'outbound' ? reminderCallsRepo.matchCall(call.contact?.phone ?? '', startedAt) : undefined),
       };
     })
   );
 
-  logs.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  // Real data replaces the seeded demo calls.
-  db.callLogs = logs;
+  sql.transaction(() => {
+    // Real data replaces the seeded demo calls; real calls are kept even if Telentir stops returning them.
+    callLogsRepo.deleteDemoCalls();
+    logs.forEach(callLogsRepo.upsert);
+  })();
   lastSyncedAt = new Date().toISOString();
-  return logs;
+  return callLogsRepo.list();
 };
 
-export const getCallLogs = () => db.callLogs;
+export const getCallLogs = () => callLogsRepo.list();
 
 export const startCallSync = () => {
   const seconds = config.telentir.syncIntervalSec;

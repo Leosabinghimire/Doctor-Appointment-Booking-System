@@ -21,29 +21,21 @@ export const AdminStatsGrid = ({ stats }: AdminStatsGridProps) => (
       label="Total patients"
       value={stats.totalPatients.toLocaleString()}
       icon={<PeopleAlt />}
-      delta={8}
-      helper="this month"
     />
     <StatCard
       label="Total doctors"
       value={stats.totalDoctors}
       icon={<LocalHospital />}
-      delta={3}
-      helper="vs last month"
     />
     <StatCard
       label="Today's bookings"
       value={stats.appointmentsToday}
       icon={<CalendarMonth />}
-      delta={12}
-      helper="vs yesterday"
     />
     <StatCard
-      label="Revenue"
+      label="Revenue this month"
       value={formatCurrency(stats.revenueThisMonth)}
       icon={<PaidOutlined />}
-      delta={6}
-      helper="this month"
     />
   </Box>
 );

@@ -1,7 +1,8 @@
 import cors from 'cors';
 import express from 'express';
-import { seedUsers } from './auth/users';
 import { config } from './config';
+import { sql } from './db/connection';
+import { seedDatabase } from './db/seed';
 import { errorHandler } from './http';
 import { api } from './routes';
 import { isTelentirEnabled } from './telentir/client';
@@ -17,7 +18,7 @@ app.use(express.json({ limit: '100kb' }));
 app.use('/v1', api);
 app.use(errorHandler);
 
-await seedUsers();
+await seedDatabase();
 
 app.listen(config.port, () => {
   console.log(`MediCare+ API listening on http://localhost:${config.port}/v1`);
@@ -31,3 +32,11 @@ app.listen(config.port, () => {
   }
   startCallSync();
 });
+
+// Close the database cleanly so the WAL file is checkpointed.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    sql.close();
+    process.exit(0);
+  });
+}

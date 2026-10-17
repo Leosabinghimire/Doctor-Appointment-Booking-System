@@ -7,6 +7,10 @@ export const useBookAppointment = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: BookingPayload) => appointmentsService.book(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.appointments.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.appointments.all });
+      // The backend adds an "Appointment confirmed" notification.
+      qc.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    },
   });
 };

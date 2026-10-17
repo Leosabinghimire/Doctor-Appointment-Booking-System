@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 try {
   process.loadEnvFile();
@@ -18,13 +20,26 @@ const secret = (name: string, devFallback: () => string): string => {
   return devFallback();
 };
 
+const dataDir = fileURLToPath(new URL('../data/', import.meta.url));
+
+/** Development only: a random secret kept in server/data so sign-ins survive server restarts. */
+const devJwtSecret = () => {
+  const file = `${dataDir}.dev-jwt-secret`;
+  if (existsSync(file)) return readFileSync(file, 'utf8').trim();
+  const generated = randomBytes(32).toString('hex');
+  mkdirSync(dataDir, { recursive: true });
+  writeFileSync(file, generated, { mode: 0o600 });
+  return generated;
+};
+
 export const config = {
   port: Number(process.env.PORT ?? 4000),
   corsOrigins: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',').map((o) => o.trim()),
   isProduction,
+  // SQLite file. Default: server/data/medicare.db. Use ":memory:" for a throwaway database.
+  databasePath: optional(process.env.DATABASE_PATH) ?? `${dataDir}medicare.db`,
   auth: {
-    // Dev fallback is random per start, so sessions end when the server restarts (data resets too).
-    jwtSecret: secret('JWT_SECRET', () => randomBytes(32).toString('hex')),
+    jwtSecret: secret('JWT_SECRET', devJwtSecret),
     tokenTtl: process.env.JWT_EXPIRES_IN ?? '8h',
     adminEmail: process.env.ADMIN_EMAIL ?? 'admin@medicare.example',
     adminPassword: secret('ADMIN_PASSWORD', () => 'admin-dev-password'),

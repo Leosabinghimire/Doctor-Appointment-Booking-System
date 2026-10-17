@@ -1,14 +1,14 @@
-import type { ReminderCallResult } from '../../../src/types';
+import type { Appointment, ReminderCallResult } from '../../../src/types';
 import { config } from '../config';
-import { db, samePhone, toE164 } from '../db';
+import { appointmentsRepo } from '../repos/appointments';
+import { reminderCallsRepo } from '../repos/calls';
+import { patientsRepo } from '../repos/patients';
+import { samePhone, toE164 } from '../util';
 import { HttpError } from '../http';
 import { formatAppointmentDate } from './knowledge';
 import { getTelentir } from './client';
 
-/** Reminders we've placed, so call sync can link the resulting call back to the appointment. */
-export const pendingReminders: { appointmentId: string; phone: string; placedAt: number }[] = [];
-
-const buildReminderPrompt = (appointment: (typeof db.appointments)[number]) =>
+const buildReminderPrompt = (appointment: Appointment) =>
   [
     `You are the friendly scheduling assistant for MediCare+, calling ${appointment.patientName}.`,
     `Remind them of their ${appointment.type === 'video' ? 'video consultation' : 'in-person visit'} with ${appointment.doctorName} (${appointment.doctorSpecialty}) on ${formatAppointmentDate(appointment.date)} at ${appointment.time}.`,
@@ -21,7 +21,7 @@ const buildReminderPrompt = (appointment: (typeof db.appointments)[number]) =>
   ].join(' ');
 
 export const placeReminderCall = async (appointmentId: string): Promise<ReminderCallResult> => {
-  const appointment = db.appointments.find((a) => a.id === appointmentId);
+  const appointment = appointmentsRepo.get(appointmentId);
   if (!appointment) throw new HttpError(404, 'Appointment not found', 'NOT_FOUND');
   if (appointment.status !== 'upcoming') {
     throw new HttpError(400, 'Reminders can only be sent for upcoming appointments', 'NOT_UPCOMING');
@@ -30,7 +30,7 @@ export const placeReminderCall = async (appointmentId: string): Promise<Reminder
     throw new HttpError(503, 'Set TELENTIR_AGENT_ID in server/.env to place reminder calls.', 'TELENTIR_NO_AGENT');
   }
 
-  const patient = db.patients.find((p) => p.id === appointment.patientId);
+  const patient = patientsRepo.get(appointment.patientId);
   if (!patient?.phone) throw new HttpError(400, 'Patient has no phone number on file', 'NO_PHONE');
 
   const telentir = await getTelentir();
@@ -60,6 +60,7 @@ export const placeReminderCall = async (appointmentId: string): Promise<Reminder
     knowledgeBase: config.telentir.knowledgeBaseId,
   });
 
-  pendingReminders.push({ appointmentId, phone, placedAt: Date.now() });
+  // Remembered so call sync can link the resulting call back to this appointment.
+  reminderCallsRepo.add(appointmentId, phone);
   return { placed: true, message: `Reminder call to ${patient.name} started.` };
 };
